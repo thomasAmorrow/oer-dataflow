@@ -3,4 +3,4 @@ Working repository for experimental data flows using OER publically available da
 
 Default passwords are used for current containers, DO NOT EXPOSE TO THE INTERNET
 
-First time use requires initialization of airflow, use docker compose up airflow-init
+First time use requires initialization of airflow, use init script.
