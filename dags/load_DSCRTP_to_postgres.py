@@ -117,7 +117,7 @@ def create_table():
         "gisWesternPacificFMC" INTEGER
     );
     """
-    postgres_hook = PostgresHook(postgres_conn_id='postgres_default')
+    postgres_hook = PostgresHook(postgres_conn_id='oceexp-db')
     postgres_hook.run(create_table_query)
 
 def load_csv_to_postgres():
@@ -130,7 +130,7 @@ def load_csv_to_postgres():
     """
     
     # PostgreSQL hook to run the COPY query
-    postgres_hook = PostgresHook(postgres_conn_id='postgres_default')
+    postgres_hook = PostgresHook(postgres_conn_id='oceexp-db')
     postgres_hook.run(copy_query)
 
 with DAG(

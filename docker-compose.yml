@@ -48,16 +48,32 @@ services:
       POSTGRES_USER: airflow
       POSTGRES_PASSWORD: airflow
       POSTGRES_DB: airflow
-    ports:
-      - "5432:5432"
     volumes:
-      - postgres-db-volume:/var/lib/postgresql/data
+      - postgres-db-volume:/var/lib/postgresql/airflowdata
     healthcheck:
       test: ["CMD", "pg_isready", "-U", "airflow"]
       interval: 10s
       retries: 5
       start_period: 5s
     restart: always
+  
+  ## container created for storing recalls data
+  oceexp-db:
+    image: postgres:13
+    ports:
+      - "5433:5432"
+    environment:
+      POSTGRES_USER: admin
+      POSTGRES_PASSWORD: admin
+      POSTGRES_DB: oceexp-db
+    volumes:
+      - oceexp-db-volume:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD", "pg_isready", "-U", "admin"]
+      interval: 10s
+      retries: 5
+      start_period: 5s
+
 
   redis:
     # Redis is limited to 7.2-bookworm due to licencing change
@@ -244,4 +260,5 @@ services:
 
 volumes:
   postgres-db-volume:
+  oceexp-db-volume:
   
