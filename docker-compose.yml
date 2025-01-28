@@ -74,6 +74,17 @@ services:
       retries: 5
       start_period: 5s
 
+  pgadmin:
+      image: dpage/pgadmin4
+      container_name: pgadmin4_container
+      restart: always
+      ports:
+        - "8888:80"
+      environment:
+        PGADMIN_DEFAULT_EMAIL: dbadmin@domain-name.com
+        PGADMIN_DEFAULT_PASSWORD: L3ArNiNg
+      volumes:
+        - pgadmin-data:/var/lib/pgadmin
 
   redis:
     # Redis is limited to 7.2-bookworm due to licencing change
@@ -261,4 +272,5 @@ services:
 volumes:
   postgres-db-volume:
   oceexp-db-volume:
+  pgadmin-data:
   
