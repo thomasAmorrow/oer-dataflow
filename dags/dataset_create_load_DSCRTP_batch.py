@@ -18,25 +18,24 @@ default_args = {
 
 # Function to load CSV data using pandas & SQLAlchemy
 def load_csv_to_postgres():
+    print("Starting load_csv_to_postgres function")
     csv_path = '/tmp/DSCRTP_NatDB_cleaned.csv'
-    batch_size = 1000  # Adjust for performance
+    batch_size = 500  # Adjust for performance
     
-    # Establish connection with Postgres using PostgresHook
+    print("Establishing connection with Postgres")
     postgres_hook = PostgresHook(postgres_conn_id='oceexp-db')
     engine = create_engine(postgres_hook.get_uri())
     metadata = MetaData()
 
-    # Read the CSV file to DataFrame without forcing dtype=str
+    print("Reading CSV file")
     df = pd.read_csv(csv_path)
+    print(f"CSV loaded with {len(df)} rows")
 
     # Map DataFrame columns to PostgreSQL column types
     columns = []
     for col in df.columns:
-        # Strip leading/trailing spaces for string columns only
         if df[col].dtype == 'object':  # Check if the column is of type 'object' (strings)
             df[col] = df[col].str.strip()
-
-        # Check if column contains numeric values
         if pd.api.types.is_numeric_dtype(df[col]):
             if df[col].dtype == 'float64':
                 columns.append(Column(col, Float))
@@ -45,15 +44,15 @@ def load_csv_to_postgres():
         else:
             columns.append(Column(col, String))
 
-    # Define SQLAlchemy table with the correct types
+    print("Defining SQLAlchemy table")
     table = Table('dscrtp', metadata, *columns)
 
     # Drop the table if it exists
     with engine.connect() as connection:
+        print("Dropping existing table if it exists")
         connection.execute("DROP TABLE IF EXISTS dscrtp")
         print("Table 'dscrtp' dropped if it existed.")
 
-        # Confirm table has been dropped
         result = connection.execute("SELECT to_regclass('dscrtp')")
         table_exists = result.fetchone()[0]
         if table_exists is not None:
@@ -63,17 +62,18 @@ def load_csv_to_postgres():
 
     # Load DataFrame to PostgreSQL table (create a new one)
     with engine.connect() as connection:
-        metadata.create_all(engine)  # Create the table with the new schema
+        print("Creating new table")
+        metadata.create_all(engine)
+        print("Table created successfully")
 
         # Start the batch loading process
-        for chunk in pd.read_csv(csv_path, chunksize=batch_size):
-            
-            # Explicitly convert numeric columns to the correct type
+        for i, chunk in enumerate(pd.read_csv(csv_path, chunksize=batch_size, low_memory=False)):
+            print(f"Processing batch {i + 1}")
             for col in chunk.select_dtypes(include=['float64', 'int64']).columns:
                 chunk[col] = pd.to_numeric(chunk[col], errors='coerce')
-            
-            # Insert the chunk into the database
             chunk.to_sql('dscrtp', connection, if_exists='append', index=False, method='multi', chunksize=batch_size)
+            print(f"Batch {i + 1} inserted")
+    print("Data loading complete")
 
 # Define DAG
 dag = DAG(
