@@ -3,7 +3,8 @@ from airflow.operators.python import PythonOperator
 from airflow.providers.postgres.hooks.postgres import PostgresHook
 from datetime import datetime
 import pandas as pd
-from sqlalchemy import create_engine, MetaData, Table
+from sqlalchemy import create_engine, MetaData, Table, Column
+from sqlalchemy import Integer, Float, String
 import time
 
 # Define default args for the DAG
@@ -25,26 +26,54 @@ def load_csv_to_postgres():
     engine = create_engine(postgres_hook.get_uri())
     metadata = MetaData()
 
-    # Read the CSV file to DataFrame
-    df = pd.read_csv(csv_path, dtype=str)
+    # Read the CSV file to DataFrame without forcing dtype=str
+    df = pd.read_csv(csv_path)
 
-    # Drop the table if it exists (recreate it)
+    # Map DataFrame columns to PostgreSQL column types
+    columns = []
+    for col in df.columns:
+        # Strip leading/trailing spaces for string columns only
+        if df[col].dtype == 'object':  # Check if the column is of type 'object' (strings)
+            df[col] = df[col].str.strip()
+
+        # Check if column contains numeric values
+        if pd.api.types.is_numeric_dtype(df[col]):
+            if df[col].dtype == 'float64':
+                columns.append(Column(col, Float))
+            elif df[col].dtype == 'int64':
+                columns.append(Column(col, Integer))
+        else:
+            columns.append(Column(col, String))
+
+    # Define SQLAlchemy table with the correct types
+    table = Table('dscrtp', metadata, *columns)
+
+    # Drop the table if it exists
     with engine.connect() as connection:
         connection.execute("DROP TABLE IF EXISTS dscrtp")
-    
+        print("Table 'dscrtp' dropped if it existed.")
+
+        # Confirm table has been dropped
+        result = connection.execute("SELECT to_regclass('dscrtp')")
+        table_exists = result.fetchone()[0]
+        if table_exists is not None:
+            raise Exception(f"Table 'dscrtp' was not dropped successfully. Load will not proceed.")
+        else:
+            print("Table 'dscrtp' confirmed dropped.")
+
     # Load DataFrame to PostgreSQL table (create a new one)
     with engine.connect() as connection:
-        for chunk in pd.read_csv(csv_path, chunksize=batch_size, dtype=str):
-            start_time = time.time()  # Record start time for batch
+        metadata.create_all(engine)  # Create the table with the new schema
+
+        # Start the batch loading process
+        for chunk in pd.read_csv(csv_path, chunksize=batch_size):
+            
+            # Explicitly convert numeric columns to the correct type
+            for col in chunk.select_dtypes(include=['float64', 'int64']).columns:
+                chunk[col] = pd.to_numeric(chunk[col], errors='coerce')
             
             # Insert the chunk into the database
             chunk.to_sql('dscrtp', connection, if_exists='append', index=False, method='multi', chunksize=batch_size)
-            
-            end_time = time.time()  # Record end time for batch
-            batch_time = end_time - start_time  # Calculate time taken for the batch
-            
-            # Log the time taken for this batch
-            print(f"Batch processed in {batch_time:.2f} seconds")
 
 # Define DAG
 dag = DAG(

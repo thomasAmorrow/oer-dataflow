@@ -14,10 +14,11 @@ def detect_encoding(file_path, num_bytes=10000):
         raw_data = f.read(num_bytes)  # Read only a chunk
         return chardet.detect(raw_data)['encoding']
 
-# Function to clean the CSV
+# Function to clean the CSV (using line-by-line processing)
 def clean_csv(input_path, output_path):
     # Detect the encoding with limited read size
     file_encoding = detect_encoding(input_path)
+    print(f"Detected encoding: {file_encoding}")
 
     # Process the CSV line by line
     with open(input_path, 'r', encoding=file_encoding, errors='replace') as infile, \
@@ -26,7 +27,10 @@ def clean_csv(input_path, output_path):
         writer = csv.writer(outfile, quoting=csv.QUOTE_MINIMAL)
 
         for row in reader:
+            # Here you could clean/process the row if necessary before writing it
             writer.writerow(row)
+
+    print(f"CSV file cleaned and saved to {output_path}")
 
 # Define default args for the DAG
 default_args = {
