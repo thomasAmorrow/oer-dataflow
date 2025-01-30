@@ -1,23 +1,25 @@
 from airflow import DAG
 from airflow.operators.python import PythonOperator
-from datetime import datetime
+from datetime import datetime, timedelta
 import csv
 import chardet
-import os
 
 # Define file paths (replace with your actual paths)
 INPUT_CSV_PATH = "/tmp/DSCRTP_NatDB.csv"
 OUTPUT_CSV_PATH = "/tmp/DSCRTP_NatDB_cleaned.csv"
 
+# Function to detect encoding safely
+def detect_encoding(file_path, num_bytes=10000):
+    with open(file_path, 'rb') as f:
+        raw_data = f.read(num_bytes)  # Read only a chunk
+        return chardet.detect(raw_data)['encoding']
+
 # Function to clean the CSV
 def clean_csv(input_path, output_path):
-    # Detect the file encoding using chardet
-    with open(input_path, 'rb') as infile:
-        raw_data = infile.read()
-        result = chardet.detect(raw_data)
-        file_encoding = result['encoding']
-    
-    # Open the file with the detected encoding
+    # Detect the encoding with limited read size
+    file_encoding = detect_encoding(input_path)
+
+    # Process the CSV line by line
     with open(input_path, 'r', encoding=file_encoding, errors='replace') as infile, \
          open(output_path, 'w', encoding='utf-8', newline='') as outfile:
         reader = csv.reader(infile)
@@ -32,7 +34,7 @@ default_args = {
     'depends_on_past': False,
     'email_on_failure': False,
     'email_on_retry': False,
-    'retries': 0
+    'retries': 0,
 }
 
 # Define the DAG
