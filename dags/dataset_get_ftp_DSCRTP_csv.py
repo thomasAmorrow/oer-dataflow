@@ -34,9 +34,9 @@ with DAG(
     tags=['csv', 'download', 'ftp'],
 ) as dag:
 
-    # Define task to download the CSV via FTP
-    download_csv_task = PythonOperator(
-        task_id='dataset_get_ftp_DSCRTP_csv',
+    # Define task to download the first CSV via FTP
+    download_csv_task_1 = PythonOperator(
+        task_id='dataset_get_ftp_DSCRTP_csv_1',
         python_callable=download_csv_ftp,
         op_kwargs={
             'ftp_host': 'ftp-oceans.ncei.noaa.gov',
@@ -46,5 +46,17 @@ with DAG(
         },
     )
 
-    # Task sequence
-    download_csv_task
+    # Define task to download the second CSV via FTP
+    download_csv_task_2 = PythonOperator(
+        task_id='dataset_get_ftp_DSCRTP_csv_2',
+        python_callable=download_csv_ftp,
+        op_kwargs={
+            'ftp_host': 'ftp-oceans.ncei.noaa.gov',
+            'ftp_directory': 'nodc/archive/arc0087/0145037/6.6/data/0-data/',
+            'ftp_filename': '2022_DSCRTP_National_Database_Schema.csv',
+            'output_path': '/tmp/DSCRTP_Schema.csv',
+        },
+    )
+
+    # Task sequence: First download, then the second one
+    download_csv_task_1 >> download_csv_task_2
