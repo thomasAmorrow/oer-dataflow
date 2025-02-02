@@ -29,11 +29,11 @@ x-airflow-common:
 
 services:
   postgres:
-    image: postgres:13
+    image: postgres:16
     environment:
-      POSTGRES_USER: airflow
-      POSTGRES_PASSWORD: airflow
-      POSTGRES_DB: airflow
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: ${POSTGRES_DB}
     volumes:
       - postgres-db-volume:/var/lib/postgresql/airflowdata
     healthcheck:
@@ -44,15 +44,17 @@ services:
     restart: always
 
   oceexp-db:
-    image: postgres:13
+    build:
+      context: .  
+      dockerfile: dockerfiles/postgres.Dockerfile  # Custom PostGIS + H3 build
     ports:
       - "5433:5432"
     environment:
-      POSTGRES_USER: admin
-      POSTGRES_PASSWORD: admin
-      POSTGRES_DB: oceexp-db
+      POSTGRES_USER: ${OCEEXP_POSTGRES_USER}
+      POSTGRES_PASSWORD: ${OCEEXP_POSTGRES_PASSWORD}
+      POSTGRES_DB: ${OCEEXP_POSTGRES_DB}
     volumes:
-      - oceexp-db-volume:/var/lib/postgresql/data
+      - ./data:/var/lib/postgresql/data
     healthcheck:
       test: ["CMD", "pg_isready", "-U", "admin"]
       interval: 10s
@@ -66,8 +68,8 @@ services:
     ports:
       - "8888:80"
     environment:
-      PGADMIN_DEFAULT_EMAIL: dbadmin@domain-name.com
-      PGADMIN_DEFAULT_PASSWORD: L3ArNiNg
+      PGADMIN_DEFAULT_EMAIL: ${PGADMIN_DEFAULT_EMAIL}
+      PGADMIN_DEFAULT_PASSWORD: ${PGADMIN_DEFAULT_PASSWORD}
     volumes:
       - pgadmin-data:/var/lib/pgadmin
 
@@ -212,8 +214,8 @@ services:
       <<: *airflow-common-env
       _AIRFLOW_DB_MIGRATE: 'true'
       _AIRFLOW_WWW_USER_CREATE: 'true'
-      _AIRFLOW_WWW_USER_USERNAME: ${_AIRFLOW_WWW_USER_USERNAME:-airflow}
-      _AIRFLOW_WWW_USER_PASSWORD: ${_AIRFLOW_WWW_USER_PASSWORD:-airflow}
+      _AIRFLOW_WWW_USER_USERNAME: ${_AIRFLOW_WWW_USER_USERNAME}
+      _AIRFLOW_WWW_USER_PASSWORD: ${_AIRFLOW_WWW_USER_PASSWORD}
       _PIP_ADDITIONAL_REQUIREMENTS: ''
     user: "${AIRFLOW_UID:-50000}:0"
     volumes:
