@@ -23,7 +23,7 @@ def load_csv_to_postgres(csv_path, schema_path, dataframe_chunk_size=200000, sql
     logging.info("Reading schema file")
     schema_df = pd.read_csv(schema_path)
     expected_headers = schema_df.iloc[:, 0].tolist()
-    expected_headers = [header.strip() for header in expected_headers] # strip whitespace from schema headers
+    expected_headers = [header.strip().lower() for header in expected_headers] # strip whitespace and lowercase headers
     data_types = schema_df.iloc[:, 4].tolist()
     
     logging.info("Establishing connection with Postgres")
@@ -34,25 +34,8 @@ def load_csv_to_postgres(csv_path, schema_path, dataframe_chunk_size=200000, sql
     # Read CSV headers
     logging.info("Validating CSV headers")
     df_headers = pd.read_csv(csv_path, nrows=0)
-    csv_headers = df_headers.columns.tolist()[3:]  # Drop first 3 columns
+    csv_headers = [col.strip().lower() for col in df_headers.columns.tolist()[3:]]  # Drop first 3 columns and normalize case
     
-    #logging.info("Header Schema Comparison:")
-    #for csv_header, expected_header in zip(csv_headers, expected_headers):
-    #    logging.info(f"CSV: {csv_header} -> Schema: {expected_header}")
-    
-    # Check for mismatches
-    #mismatched_headers = [csv for csv, expected in zip(csv_headers, expected_headers) if csv != expected]
-    #if mismatched_headers:
-    #    logging.error("Mismatched Headers:")
-    #    for header in mismatched_headers:
-    #        logging.error(f"Mismatch: {header}")
-    #    raise Exception("CSV headers do not match schema headers!")
-    
-    #logging.info("CSV headers validated successfully")
-    #logging.info("Matched Headers:")
-    #for header, dtype in zip(expected_headers, data_types):
-    #    logging.info(f"{header}: {dtype}")
-
     # Map schema data types to SQLAlchemy types
     type_mapping = {
         'Logical': Integer,
@@ -90,11 +73,12 @@ def load_csv_to_postgres(csv_path, schema_path, dataframe_chunk_size=200000, sql
         logging.info("Starting batch data load")
         for i, df_chunk in enumerate(pd.read_csv(csv_path, chunksize=dataframe_chunk_size, low_memory=False)):
             df_chunk = df_chunk.iloc[:, 3:]  # Drop first 3 columns
+            df_chunk.columns = [col.strip().lower() for col in df_chunk.columns]  # Normalize column names
             logging.info(f"Processing DataFrame batch {i + 1}")
             
             # Convert data types
             for col, dtype in zip(expected_headers, data_types):
-                if dtype in ['Integer', 'Float']:
+                if dtype in ['Integer', 'Float'] and col in df_chunk.columns:
                     df_chunk[col] = pd.to_numeric(df_chunk[col], errors='coerce')
             
             # Insert in smaller SQL batches
