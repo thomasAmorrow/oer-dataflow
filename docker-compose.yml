@@ -13,7 +13,7 @@ x-airflow-common:
     AIRFLOW__CORE__LOAD_EXAMPLES: 'false'
     AIRFLOW__API__AUTH_BACKENDS: 'airflow.api.auth.backend.basic_auth,airflow.api.auth.backend.session'
     AIRFLOW__SCHEDULER__ENABLE_HEALTH_CHECK: 'true'
-    _PIP_ADDITIONAL_REQUIREMENTS: ${_PIP_ADDITIONAL_REQUIREMENTS:-apache-airflow-providers-ftp h3}
+    _PIP_ADDITIONAL_REQUIREMENTS: ${_PIP_ADDITIONAL_REQUIREMENTS:-apache-airflow-providers-ftp apache-airflow-providers-postgres}
   volumes:
     - ${AIRFLOW_PROJ_DIR:-.}/dags:/opt/airflow/dags
     - ${AIRFLOW_PROJ_DIR:-.}/logs:/opt/airflow/logs
@@ -44,10 +44,10 @@ services:
     restart: always
 
   oceexp-db:
-    image: postgres:16
-    #build:
-    #  context: .  
-    #  dockerfile: dockerfiles/postgres.Dockerfile  # Custom PostGIS + H3 build
+    #image: postgres:16
+    build:
+      context: .  
+      dockerfile: dockerfiles/postgres.Dockerfile  # Custom PostGIS + H3 build
     ports:
       - "5433:5432"
     environment:
@@ -125,6 +125,9 @@ services:
         condition: service_completed_successfully
 
   airflow-worker:
+    build:
+      context: .
+      dockerfile: dockerfiles/airflow-worker.Dockerfile  # Ensures the custom image with raster2pgsql is used
     <<: *airflow-common
     command: celery worker
     scale: 1
