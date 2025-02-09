@@ -66,7 +66,7 @@ def convert_geotiff_to_sql(geotiff_path, schema_name, table_name):
 
     # Generate the SQL file using raster2pgsql
     sql_file_path = "/tmp/gebco_2024.sql"
-    raster2pgsql_cmd = f"raster2pgsql -s 4326 -I -t 1000x1000 -C {geotiff_path} {schema_name}.{table_name} > {sql_file_path}"
+    raster2pgsql_cmd = f"raster2pgsql -s 4326 -I -t 256x256 -C {geotiff_path} {schema_name}.{table_name} > {sql_file_path}"
     result = subprocess.run(raster2pgsql_cmd, shell=True, capture_output=True, text=True)
 
     if result.returncode != 0:
