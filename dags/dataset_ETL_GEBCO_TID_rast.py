@@ -78,23 +78,28 @@ def convert_geotiff_to_sql(geotiff_path, schema_name, table_name):
     return sql_file_path
 
 def load_sql_to_postgis(sql_file_path, postgres_conn_id):
-    """Load a SQL file into PostGIS using psql command line tool."""
+    """Load a SQL file into PostGIS using psql command line tool with password handling."""
     logging.info(f"Loading SQL file {sql_file_path} into PostGIS using psql")
 
     # Get Postgres connection details from the hook
     pg_hook = PostgresHook(postgres_conn_id)
     conn = pg_hook.get_conn()
 
-    host = conn.info.host  # Extract host from psycopg2 connection
-    user = conn.info.user  # Extract user
-    dbname = conn.info.dbname  # Extract database name
+    host = conn.info.host
+    user = conn.info.user
+    dbname = conn.info.dbname
+    password = conn.info.password  # Get the password
 
-    # Build the psql command to load the SQL file
+    # Set password via PGPASSWORD environment variable
+    env = os.environ.copy()
+    env["PGPASSWORD"] = password
+
+    # Build the psql command
     psql_command = f"psql -h {host} -U {user} -d {dbname} -f {sql_file_path}"
 
     try:
-        # Execute the psql command using subprocess
-        result = subprocess.run(psql_command, shell=True, capture_output=True, text=True)
+        # Execute the command with environment variable set
+        result = subprocess.run(psql_command, shell=True, env=env, capture_output=True, text=True)
 
         if result.returncode != 0:
             logging.error(f"psql failed with error: {result.stderr}")
