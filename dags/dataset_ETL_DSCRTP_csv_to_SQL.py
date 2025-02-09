@@ -91,54 +91,56 @@ def load_csv_to_postgres(csv_path, schema_path, dataframe_chunk_size=200000, sql
                 chunk.to_sql('dscrtp', connection, if_exists='append', index=False, method='multi', chunksize=sql_chunk_size)
         logging.info("Data loading complete")
 
-
 # Define the DAG
-with DAG(
+dag = DAG(
     dag_id='dataset_ETL_DSCRTP_csv_to_SQL',
     default_args=default_args,
     description='A DAG to download a CSV from an FTP server',
-    schedule_interval=timedelta(days=180),  # Run every 180 days
+    schedule_interval=None,  # Trigger manually or modify as needed
     start_date=datetime(2025, 1, 1),
     catchup=False,
     tags=['csv', 'download', 'ftp','sql'],
-) as dag:
+) 
 
-    # Define task to download the first CSV via FTP
-    download_csv_data = PythonOperator(
-        task_id='dataset_get_ftp_DSCRTP_csv_data',
-        python_callable=download_csv_ftp,
-        op_kwargs={
-            'ftp_host': 'ftp-oceans.ncei.noaa.gov',
-            'ftp_directory': 'nodc/archive/arc0087/0145037/6.6/data/0-data/',
-            'ftp_filename': 'DSCRTP_NatDB_20241022-1.csv',
-            'output_path': '/tmp/DSCRTP_NatDB.csv',
-        },
-    )
+# Define task to download the first CSV via FTP
+download_csv_data = PythonOperator(
+    task_id='dataset_get_ftp_DSCRTP_csv_data',
+    python_callable=download_csv_ftp,
+    op_kwargs={
+        'ftp_host': 'ftp-oceans.ncei.noaa.gov',
+        'ftp_directory': 'nodc/archive/arc0087/0145037/6.6/data/0-data/',
+        'ftp_filename': 'DSCRTP_NatDB_20241022-1.csv',
+        'output_path': '/tmp/DSCRTP_NatDB.csv',
+    },
+    dag=dag,
+)
 
-    # Define task to download the second CSV via FTP
-    download_csv_schema = PythonOperator(
-        task_id='dataset_get_ftp_DSCRTP_csv_schema',
-        python_callable=download_csv_ftp,
-        op_kwargs={
-            'ftp_host': 'ftp-oceans.ncei.noaa.gov',
-            'ftp_directory': 'nodc/archive/arc0087/0145037/6.6/data/0-data/',
-            'ftp_filename': '2022_DSCRTP_National_Database_Schema.csv',
-            'output_path': '/tmp/DSCRTP_Schema.csv',
-        },
-    )
+# Define task to download the second CSV via FTP
+download_csv_schema = PythonOperator(
+    task_id='dataset_get_ftp_DSCRTP_csv_schema',
+    python_callable=download_csv_ftp,
+    op_kwargs={
+        'ftp_host': 'ftp-oceans.ncei.noaa.gov',
+        'ftp_directory': 'nodc/archive/arc0087/0145037/6.6/data/0-data/',
+        'ftp_filename': '2022_DSCRTP_National_Database_Schema.csv',
+        'output_path': '/tmp/DSCRTP_Schema.csv',
+    },
+    dag=dag,
+)
 
-    # Task to clean the CSV
-    clean_csv_task = PythonOperator(
-        task_id='clean_csv_task',
-        python_callable=clean_csv,
-        op_kwargs={
-            'input_path': INPUT_CSV_PATH,
-            'output_path': OUTPUT_CSV_PATH,
-        },
-    )
+# Task to clean the CSV
+clean_csv_task = PythonOperator(
+    task_id='clean_csv_task',
+    python_callable=clean_csv,
+    op_kwargs={
+        'input_path': INPUT_CSV_PATH,
+        'output_path': OUTPUT_CSV_PATH,
+    },
+    dag=dag,
+)
 
-    # Define the task
-    load_csv_task = PythonOperator(
+# Define the task to load CSV into PostgreSQL
+load_csv_task = PythonOperator(
     task_id='load_csv_to_postgres',
     python_callable=load_csv_to_postgres,
     op_kwargs={
@@ -147,8 +149,8 @@ with DAG(
         'dataframe_chunk_size': 200000,
         'sql_chunk_size': 1000
     },
-    dag=dag
+    dag=dag,
 )
 
-    # Task sequence: First download, then the second one
-    download_csv_data >> download_csv_schema >> clean_csv_task >> load_csv_task
+# Task sequence: First download, then the second one, clean, and then load
+download_csv_data >> download_csv_schema >> clean_csv_task >> load_csv_task

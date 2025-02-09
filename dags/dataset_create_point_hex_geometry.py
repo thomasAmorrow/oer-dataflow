@@ -1,4 +1,4 @@
-from datetime import timedelta
+from datetime import datetime,timedelta
 from airflow import DAG
 from airflow.operators.python import PythonOperator
 from airflow.providers.postgres.hooks.postgres import PostgresHook
@@ -54,7 +54,7 @@ dag = DAG(
     default_args=default_args,
     description='DAG to create point geometry and generate H3 hexagons for resolutions 1 to 15',
     schedule_interval=None,  # Trigger manually or modify as needed
-    start_date=days_ago(1),
+    start_date=datetime(2025, 1, 1),
     catchup=False,
 )
 

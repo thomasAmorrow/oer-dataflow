@@ -6,6 +6,8 @@ import requests
 import zipfile
 import os
 import subprocess
+import logging
+from sqlalchemy import create_engine
 
 default_args = {
     'owner': 'airflow',
@@ -36,35 +38,82 @@ def create_schema(schema_name, postgres_conn_id):
     cursor.close()
     conn.close()
 
-def convert_netcdf_to_sql(folder_path, schema_name, table_name):
+def convert_netcdf_to_geotiff(folder_path, schema_name, table_name):
     nc_files = [f for f in os.listdir(folder_path) if f.endswith(".nc")]
     if not nc_files:
         raise FileNotFoundError("No NetCDF file found in the extracted folder")
-
+    
+    # Get the correct file name (assuming the file is named GEBCO_2024_TID.nc after extraction)
     nc_file_path = os.path.join(folder_path, nc_files[0])
-    tif_file_path = os.path.join(folder_path, f"{table_name}.tif")
-    sql_file_path = os.path.join(folder_path, f"{table_name}.sql")
+    geotiff_path = os.path.join(folder_path, f"{table_name}.tif")
+    
+    # Use gdal_translate to convert NetCDF to GeoTIFF
+    gdal_translate_cmd = f"gdal_translate -of GTiff {nc_file_path} {geotiff_path}"
+    
+    result = subprocess.run(gdal_translate_cmd, shell=True, capture_output=True, text=True)
 
-    # Convert NetCDF to GeoTIFF using GDAL
-    gdal_cmd = f"gdal_translate -of GTiff NETCDF:{nc_file_path}:elevation {tif_file_path}"
-    subprocess.run(gdal_cmd, shell=True, check=True)
+    if result.returncode != 0:
+        logging.error(f"gdal_translate failed with error: {result.stderr}")
+        raise RuntimeError(f"gdal_translate failed: {result.stderr}")
+    
+    logging.info(f"gdal_translate output: {result.stdout}")
+    
+    return geotiff_path
 
-    # Convert GeoTIFF to SQL using raster2pgsql
-    raster2pgsql_cmd = f"raster2pgsql -s 4326 -I -C -M {tif_file_path} {schema_name}.{table_name} > {sql_file_path}"
-    subprocess.run(raster2pgsql_cmd, shell=True, check=True)
+def convert_geotiff_to_sql(geotiff_path, schema_name, table_name):
+    """Convert GeoTIFF to SQL using raster2pgsql"""
+    logging.info(f"Converting GeoTIFF {geotiff_path} to SQL")
 
+    # Generate the SQL file using raster2pgsql
+    sql_file_path = "/tmp/gebco_2024.sql"
+    raster2pgsql_cmd = f"raster2pgsql -s 4326 -I -t 1000x1000 -C {geotiff_path} {schema_name}.{table_name} > {sql_file_path}"
+    result = subprocess.run(raster2pgsql_cmd, shell=True, capture_output=True, text=True)
+
+    if result.returncode != 0:
+        logging.error(f"raster2pgsql failed with error: {result.stderr}")
+        raise RuntimeError(f"raster2pgsql failed: {result.stderr}")
+
+    logging.info(f"raster2pgsql output: {result.stdout}")
+    
     return sql_file_path
 
 def load_sql_to_postgis(sql_file_path, postgres_conn_id):
+    """Load a SQL file into PostGIS using psql command line tool."""
+    logging.info(f"Loading SQL file {sql_file_path} into PostGIS using psql")
+
+    # Get Postgres connection details from the hook
     pg_hook = PostgresHook(postgres_conn_id)
-    psql_cmd = f"PGPASSWORD={pg_hook.password} psql -h {pg_hook.host} -U {pg_hook.user} -d {pg_hook.schema} -f {sql_file_path}"
-    subprocess.run(psql_cmd, shell=True, check=True)
+    conn = pg_hook.get_conn()
+
+    host = conn.info.host  # Extract host from psycopg2 connection
+    user = conn.info.user  # Extract user
+    dbname = conn.info.dbname  # Extract database name
+
+    # Build the psql command to load the SQL file
+    psql_command = f"psql -h {host} -U {user} -d {dbname} -f {sql_file_path}"
+
+    try:
+        # Execute the psql command using subprocess
+        result = subprocess.run(psql_command, shell=True, capture_output=True, text=True)
+
+        if result.returncode != 0:
+            logging.error(f"psql failed with error: {result.stderr}")
+            raise RuntimeError(f"psql failed: {result.stderr}")
+
+        logging.info(f"psql output: {result.stdout}")
+    except Exception as e:
+        logging.error(f"Error executing psql command: {e}")
+        raise
+    finally:
+        conn.close()
+
+    logging.info("SQL file loaded successfully.")
 
 dag = DAG(
     'dataset_ETL_GEBCO_netcdf_to_pgsql',
     default_args=default_args,
-    description='DAG to download, unzip, convert NetCDF to PostGIS, and load into database',
-    schedule_interval=timedelta(days=180),
+    description='DAG to download, unzip, create schema, convert NetCDF to GeoTIFF, convert GeoTIFF to SQL, and upload to PostGIS',
+    schedule_interval=None,  # Run every 180 days
     start_date=datetime(2025, 1, 1),
     catchup=False,
 )
@@ -89,19 +138,32 @@ create_schema_task = PythonOperator(
     dag=dag,
 )
 
-convert_netcdf_to_sql_task = PythonOperator(
-    task_id='convert_netcdf_to_sql',
-    python_callable=convert_netcdf_to_sql,
+convert_netcdf_to_geotiff_task = PythonOperator(
+    task_id='convert_netcdf_to_geotiff',
+    python_callable=convert_netcdf_to_geotiff,
     op_kwargs={'folder_path': extract_folder, 'schema_name': schema_name, 'table_name': table_name},
-    provide_context=True,
+    dag=dag,
+)
+
+convert_geotiff_to_sql_task = PythonOperator(
+    task_id='convert_geotiff_to_sql',
+    python_callable=convert_geotiff_to_sql,
+    op_kwargs={
+        'geotiff_path': f"{extract_folder}/gebco_2024.tif",
+        'schema_name': schema_name,
+        'table_name': table_name
+    },
     dag=dag,
 )
 
 load_sql_task = PythonOperator(
     task_id='load_sql_to_postgis',
     python_callable=load_sql_to_postgis,
-    op_kwargs={'sql_file_path': f"{extract_folder}/{table_name}.sql", 'postgres_conn_id': postgres_conn_id},
+    op_kwargs={
+        'sql_file_path': "/tmp/gebco_2024.sql",
+        'postgres_conn_id': postgres_conn_id
+    },
     dag=dag,
 )
 
-download_unzip_task >> create_schema_task >> convert_netcdf_to_sql_task >> load_sql_task
+download_unzip_task >> create_schema_task >> convert_netcdf_to_geotiff_task >> convert_geotiff_to_sql_task >> load_sql_task

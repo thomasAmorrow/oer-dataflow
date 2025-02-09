@@ -6,6 +6,9 @@ import requests
 import zipfile
 import os
 import subprocess
+import logging
+from sqlalchemy import create_engine
+
 
 default_args = {
     'owner': 'airflow',
@@ -32,7 +35,7 @@ def create_schema(schema_name, postgres_conn_id):
     pg_hook = PostgresHook(postgres_conn_id)
     conn = pg_hook.get_conn()
     cursor = conn.cursor()
-    cursor.execute(f"CREATE SCHEMA IF NOT EXISTS {schema_name};")
+    cursor.execute(f"CREATE SCHEMA IF NOT EXISTS {schema_name};") #schema needs to be defined
     conn.commit()
     cursor.close()
     conn.close()
@@ -51,15 +54,28 @@ def convert_shapefile_to_sql(folder_path, schema_name, table_name):
     return sql_file_path
 
 def load_sql_to_postgis(sql_file_path, postgres_conn_id):
+    """Loads a SQL file into PostGIS using SQLAlchemy's engine connection."""
+    logging.info(f"Loading SQL file {sql_file_path} into PostGIS")
+    
+    # Get Postgres connection details
     pg_hook = PostgresHook(postgres_conn_id)
-    psql_cmd = f"PGPASSWORD={pg_hook.password} psql -h {pg_hook.host} -U {pg_hook.user} -d {pg_hook.schema} -f {sql_file_path}"
-    subprocess.run(psql_cmd, shell=True, check=True)
+    engine = create_engine(pg_hook.get_uri())  # Use SQLAlchemy engine
+    
+    # Read SQL file
+    with open(sql_file_path, 'r', encoding='utf-8') as sql_file:
+        sql_script = sql_file.read()
+    
+    # Execute SQL script in database
+    with engine.connect() as connection:
+        logging.info("Executing SQL script...")
+        connection.execute(sql_script)
+        logging.info("SQL script executed successfully.")
 
 dag = DAG(
     'dataset_ETL_GMRT_shp_to_pgsql',
     default_args=default_args,
     description='DAG to download, unzip, create schema, convert shapefile, and upload SQL to PostGIS',
-    schedule_interval=timedelta(days=180),  # Run every 180 days
+    schedule_interval=None,  # Trigger manually or modify as needed
     start_date=datetime(2025, 1, 1),
     catchup=False,
 )
