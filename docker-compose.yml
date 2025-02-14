@@ -5,7 +5,7 @@ x-airflow-common:
   environment:
     &airflow-common-env
     AIRFLOW__CORE__EXECUTOR: CeleryExecutor
-    AIRFLOW__DATABASE__SQL_ALCHEMY_CONN: postgresql+psycopg2://airflow:airflow@postgres/airflow
+    AIRFLOW__DATABASE__SQL_ALCHEMY_CONN: postgresql+psycopg2://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres/airflow
     AIRFLOW__CELERY__RESULT_BACKEND: db+postgresql://airflow:airflow@postgres/airflow
     AIRFLOW__CELERY__BROKER_URL: redis://:@redis:6379/0
     AIRFLOW__CORE__FERNET_KEY: ''
@@ -61,12 +61,12 @@ services:
       interval: 10s
       retries: 5
       start_period: 5s
-    deploy:
-      resources:
-        limits:
-          cpus: "4.0"  # Limit CPU usage to 4 cores
-        reservations:
-          cpus: "2.0"  # Reserve 2 CPUs to ensure availability
+        #deploy:
+      #resources:
+        #limits:
+          # cpus: "4.0"  # Limit CPU usage to 4 cores
+          #reservations:
+          # cpus: "2.0"  # Reserve 2 CPUs to ensure availability
 
   pgadmin:
     image: dpage/pgadmin4
@@ -131,12 +131,12 @@ services:
     <<: *airflow-common
     command: celery worker
     scale: 1
-    deploy:
-      resources:
-        limits:
-          cpus: "4.0"  # Allocate 4 CPUs for the single worker
-        reservations:
-          cpus: "2.0"  # Reserve 2 CPUs for the worker to ensure it has sufficient resources
+      #deploy:
+      #resources:
+        #limits:
+          #cpus: "4.0"  # Allocate 4 CPUs for the single worker
+          #reservations:
+          #cpus: "2.0"  # Reserve 2 CPUs for the worker to ensure it has sufficient resources
     healthcheck:
       test:
         - "CMD-SHELL"
