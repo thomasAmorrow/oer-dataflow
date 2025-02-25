@@ -4,6 +4,7 @@ USER root
 RUN apt-get update && apt-get install -y \
     postgis \
     postgresql-client \
+    gdal-bin gdal-data gdal-plugins \
     && rm -rf /var/lib/apt/lists/*
 
 USER airflow
