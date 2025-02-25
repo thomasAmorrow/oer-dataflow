@@ -125,8 +125,8 @@ dag = DAG(
 
 netcdf_url = "https://www.bodc.ac.uk/data/open_download/gebco/gebco_2024_tid/zip/"
 extract_folder = "/tmp/"
-schema_name = "bathymetry"
-table_name = "gebco_2024"
+schema_name = "public"
+table_name = "gebco_TID"
 postgres_conn_id = "oceexp-db"
 
 download_unzip_task = PythonOperator(
