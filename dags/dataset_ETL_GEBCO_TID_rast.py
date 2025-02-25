@@ -115,7 +115,7 @@ def load_sql_to_postgis(sql_file_path, postgres_conn_id):
     logging.info("SQL file loaded successfully.")
 
 dag = DAG(
-    'dataset_ETL_GEBCO_netcdf_to_pgsql',
+    'dataset_ETL_GEBCO_netcdf_TID_to_pgsql',
     default_args=default_args,
     description='DAG to download, unzip, create schema, convert NetCDF to GeoTIFF, convert GeoTIFF to SQL, and upload to PostGIS',
     schedule_interval=None,  # Run every 180 days
