@@ -62,7 +62,7 @@ with DAG(
             raise FileNotFoundError("No NetCDF file found after extraction.")
 
         nc_file_path = os.path.join(folder_path, nc_files[0])
-        ds = xr.open_dataset(nc_file_path)
+        ds = xr.open_dataset(nc_file_path, engine="netcdf4")  # Explicitly specify engine
         var_name = list(ds.data_vars.keys())[0]  # Assuming the first variable is what we need
 
         df = ds.to_dataframe().reset_index()
