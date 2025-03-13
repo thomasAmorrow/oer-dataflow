@@ -5,7 +5,9 @@ import geopandas as gpd
 import h3
 import csv
 import time
-from tqdm import tqdm  # Import tqdm for progress bar
+from tqdm import tqdm
+import concurrent.futures
+import threading
 
 def download_osm_water_polygons(url, output_folder):
     """Downloads and extracts the OSM water polygons shapefile with a progress bar."""
@@ -38,11 +40,12 @@ def download_osm_water_polygons(url, output_folder):
         zip_ref.extractall(extracted_folder)
     print(f"Files extracted to {extracted_folder}")
 
-
 def load_water_polygons(shapefile_path):
     """Loads OSM water polygons shapefile."""
     # Load the shapefile into a GeoDataFrame
-    gdf = gpd.read_file(shapefile_path, rows=1000)
+    print("Loading shapefiles...")
+    gdf = gpd.read_file(shapefile_path)
+    print("...done")
     
     # Reproject to WGS 84 if the CRS isn't already EPSG:4326
     if gdf.crs != 'EPSG:4326':
@@ -51,20 +54,36 @@ def load_water_polygons(shapefile_path):
 
     return gdf
 
+def process_geometry(geom):
+    """Process a single geometry and return its H3 hexagons."""
+    geojson = geom.__geo_interface__  # Convert the geometry to GeoJSON format
+    hexes = h3.geo_to_cells(geojson, 7)  # Adjust resolution as needed
+    return hexes
+
 def identify_water_hexes(gdf):
-    """Determines all hexagons that intersect water polygons with a progress bar."""
-    
+    """Determines all hexagons that intersect water polygons with parallelization and shows a single progress bar."""
     waterhexes = set()  # Initialize an empty set to store unique hexes
     
-    # Use tqdm to add a progress bar for the loop over geometries
+    # Function to process geometry and update progress bar
+    def process_geometry_with_progress(geom):
+        """Process a single geometry and update the progress bar."""
+        hexes = process_geometry(geom)  # Process the geometry and get hexagons
+        waterhexes.update(hexes)  # Update the waterhexes set with the result
+
+    # Create a single progress bar for the entire task
     with tqdm(total=len(gdf.geometry), desc="Identifying water hexagons", unit="geometry") as pbar:
-        for geom in gdf.geometry:
-            geojson = geom.__geo_interface__  # Convert the geometry to GeoJSON format
-            hexes = h3.geo_to_cells(geojson, 5)  # Adjust resolution as needed
-            waterhexes.update(hexes)
-            pbar.update(1)  # Update progress bar after each geometry
+        
+        # Use ThreadPoolExecutor for parallel processing
+        with concurrent.futures.ThreadPoolExecutor() as executor:
+            # Submit all tasks to the executor
+            futures = {executor.submit(process_geometry_with_progress, geom): geom for geom in gdf.geometry}
             
+            # Monitor the progress of the tasks
+            for future in concurrent.futures.as_completed(futures):
+                pbar.update(1)  # Update the progress bar when each task completes
+
     return waterhexes
+
 
 def write_waterhexes_to_file(waterhexes, filename):
     """Write the set of water hexagons to a CSV file."""
@@ -87,7 +106,7 @@ if __name__ == "__main__":
     # Load the water polygons shapefile
     gdf = load_water_polygons("./osm_water_data/water-polygons/water-polygons-split-3857/water_polygons.shp")
 
-    # Identify the water hexagons with progress bar
+    # Identify the water hexagons with parallelization
     waterhexes = identify_water_hexes(gdf)
 
     # Save the water hexagons to a CSV file
