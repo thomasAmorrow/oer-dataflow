@@ -106,7 +106,7 @@ default_args = {
 
 # Initialize the DAG
 dag = DAG(
-    'osm_water_processing',
+    'dataset_create_hex_heirarchy_from_water_polygons',
     default_args=default_args,
     description='Download, process, and save OSM water hexagons',
     schedule_interval=None,  # Change this to your preferred schedule (e.g., '@daily')
