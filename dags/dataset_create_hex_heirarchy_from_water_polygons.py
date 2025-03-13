@@ -8,6 +8,7 @@ import geopandas as gpd
 import h3
 import csv
 import concurrent.futures
+import json
 
 
 def download_osm_water_polygons(url, output_folder):
@@ -45,7 +46,7 @@ def extract_zip(zip_filename, output_folder):
 
 
 def load_water_polygons(shapefile_path):
-    """Loads the OSM water polygons shapefile."""
+    """Loads the OSM water polygons shapefile and serializes it to GeoJSON."""
     print(f"Loading shapefile from {shapefile_path}...")
     gdf = gpd.read_file(shapefile_path, rows=1000)
     print("Shapefile loaded.")
@@ -54,8 +55,10 @@ def load_water_polygons(shapefile_path):
     if gdf.crs != 'EPSG:4326':
         gdf = gdf.to_crs(epsg=4326)
         print("Reprojected GeoDataFrame to EPSG:4326")
-
-    return gdf
+    
+    # Serialize the GeoDataFrame to GeoJSON
+    geojson = gdf.to_json()
+    return geojson
 
 
 def process_geometry(geom):
@@ -65,8 +68,11 @@ def process_geometry(geom):
     return hexes
 
 
-def identify_water_hexes(gdf):
+def identify_water_hexes(geojson_data):
     """Identifies all hexagons that intersect water polygons using parallelization."""
+    # Deserialize GeoJSON to GeoDataFrame
+    gdf = gpd.read_file(json.loads(geojson_data))
+    
     waterhexes = set()  # Initialize an empty set to store unique hexes
     
     # Function to process geometry
@@ -83,7 +89,7 @@ def identify_water_hexes(gdf):
         # Wait for all futures to complete
         concurrent.futures.wait(futures)
 
-    return waterhexes
+    return list(waterhexes)
 
 
 def write_waterhexes_to_file(waterhexes, filename):
@@ -139,7 +145,7 @@ load_task = PythonOperator(
 identify_task = PythonOperator(
     task_id='identify_water_hexes',
     python_callable=identify_water_hexes,
-    op_args=["{{ task_instance.xcom_pull(task_ids='load_water_polygons') }}"],  # Pass the GeoDataFrame from load_task
+    op_args=["{{ task_instance.xcom_pull(task_ids='load_water_polygons') }}"],  # Pass the serialized GeoDataFrame
     dag=dag,
 )
 
