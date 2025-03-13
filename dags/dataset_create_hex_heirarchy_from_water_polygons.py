@@ -47,7 +47,7 @@ def extract_zip(zip_filename, output_folder):
 def load_water_polygons(shapefile_path):
     """Loads the OSM water polygons shapefile."""
     print(f"Loading shapefile from {shapefile_path}...")
-    gdf = gpd.read_file(shapefile_path)
+    gdf = gpd.read_file(shapefile_path, rows=1000)
     print("Shapefile loaded.")
     
     # Reproject to WGS 84 if the CRS isn't already EPSG:4326
@@ -61,7 +61,7 @@ def load_water_polygons(shapefile_path):
 def process_geometry(geom):
     """Process a single geometry and return its H3 hexagons."""
     geojson = geom.__geo_interface__  # Convert the geometry to GeoJSON format
-    hexes = h3.geo_to_cells(geojson, 7)  # Adjust resolution as needed
+    hexes = h3.geo_to_cells(geojson, 5)  # Adjust resolution as needed
     return hexes
 
 
