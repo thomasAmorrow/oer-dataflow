@@ -11,9 +11,8 @@ import concurrent.futures
 
 
 def download_osm_water_polygons(url, output_folder):
-    """Downloads and extracts the OSM water polygons shapefile."""
+    """Downloads the OSM water polygons shapefile."""
     zip_filename = os.path.join(output_folder, "water-polygons.zip")
-    extracted_folder = os.path.join(output_folder, "water-polygons")
     
     # Ensure output folder exists
     os.makedirs(output_folder, exist_ok=True)
@@ -30,19 +29,26 @@ def download_osm_water_polygons(url, output_folder):
         print("Download complete.")
     else:
         print("Failed to download the file.")
-        return
+        raise Exception("Download failed.")
     
-    # Extract the ZIP file
-    print("Extracting files...")
+    return zip_filename
+
+
+def extract_zip(zip_filename, output_folder):
+    """Extract the downloaded ZIP file."""
+    extracted_folder = os.path.join(output_folder, "water-polygons")
+    print(f"Extracting files to {extracted_folder}...")
     with zipfile.ZipFile(zip_filename, "r") as zip_ref:
         zip_ref.extractall(extracted_folder)
-    print(f"Files extracted to {extracted_folder}")
+    print("Extraction complete.")
+    return extracted_folder
+
 
 def load_water_polygons(shapefile_path):
-    """Loads OSM water polygons shapefile."""
-    print("Loading shapefiles...")
-    gdf = gpd.read_file(shapefile_path, rows=1000)
-    print("...done")
+    """Loads the OSM water polygons shapefile."""
+    print(f"Loading shapefile from {shapefile_path}...")
+    gdf = gpd.read_file(shapefile_path)
+    print("Shapefile loaded.")
     
     # Reproject to WGS 84 if the CRS isn't already EPSG:4326
     if gdf.crs != 'EPSG:4326':
@@ -51,14 +57,16 @@ def load_water_polygons(shapefile_path):
 
     return gdf
 
+
 def process_geometry(geom):
     """Process a single geometry and return its H3 hexagons."""
     geojson = geom.__geo_interface__  # Convert the geometry to GeoJSON format
-    hexes = h3.geo_to_cells(geojson, 5)  # Adjust resolution as needed
+    hexes = h3.geo_to_cells(geojson, 7)  # Adjust resolution as needed
     return hexes
 
+
 def identify_water_hexes(gdf):
-    """Determines all hexagons that intersect water polygons with parallelization."""
+    """Identifies all hexagons that intersect water polygons using parallelization."""
     waterhexes = set()  # Initialize an empty set to store unique hexes
     
     # Function to process geometry
@@ -80,6 +88,7 @@ def identify_water_hexes(gdf):
 
 def write_waterhexes_to_file(waterhexes, filename):
     """Write the set of water hexagons to a CSV file."""
+    print(f"Writing water hexagons to {filename}...")
     with open(filename, mode='w', newline='') as file:
         writer = csv.writer(file)
         writer.writerow(["H3_Index"])  # Header row
@@ -91,7 +100,7 @@ def write_waterhexes_to_file(waterhexes, filename):
 # Define the default_args dictionary for Airflow DAG
 default_args = {
     'owner': 'airflow',
-    'retries': 'none',
+    'retries': 1,
     'retry_delay': timedelta(minutes=5),
 }
 
@@ -113,10 +122,17 @@ download_task = PythonOperator(
     dag=dag,
 )
 
+extract_task = PythonOperator(
+    task_id='extract_zip',
+    python_callable=extract_zip,
+    op_args=["{{ task_instance.xcom_pull(task_ids='download_osm_water_polygons') }}", "osm_water_data"],
+    dag=dag,
+)
+
 load_task = PythonOperator(
     task_id='load_water_polygons',
     python_callable=load_water_polygons,
-    op_args=["./osm_water_data/water-polygons/water-polygons-split-3857/water_polygons.shp"],
+    op_args=["{{ task_instance.xcom_pull(task_ids='extract_zip') }}/water-polygons-split-3857/water_polygons.shp"],
     dag=dag,
 )
 
@@ -135,4 +151,4 @@ write_task = PythonOperator(
 )
 
 # Set task dependencies
-download_task >> load_task >> identify_task >> write_task
+download_task >> extract_task >> load_task >> identify_task >> write_task
