@@ -53,7 +53,8 @@ def process_and_identify_hexagons(extracted_folder, output_csv):
     shapefile_path = os.path.join(extracted_folder, "water-polygons-split-3857", "water_polygons.shp")
     
     # Load the shapefile into a GeoDataFrame
-    print("Loading shapefiles...")
+    print("Loading shapefiles from ")
+    print(shapefile_path)
     gdf = gpd.read_file(shapefile_path, rows=1000)
     print("...done")
     
