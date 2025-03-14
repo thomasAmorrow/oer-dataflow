@@ -7,9 +7,7 @@ import zipfile
 import geopandas as gpd
 import h3
 import csv
-import concurrent.futures
 import json
-
 
 def download_osm_water_polygons(url, output_folder):
     """Downloads the OSM water polygons shapefile."""
@@ -69,25 +67,16 @@ def process_geometry(geom):
 
 
 def identify_water_hexes(geojson_data):
-    """Identifies all hexagons that intersect water polygons using parallelization."""
+    """Identifies all hexagons that intersect water polygons."""
     # Deserialize GeoJSON to GeoDataFrame
     gdf = gpd.read_file(json.loads(geojson_data))
     
     waterhexes = set()  # Initialize an empty set to store unique hexes
     
-    # Function to process geometry
-    def process_geometry_with_progress(geom):
-        """Process a single geometry."""
+    # Loop through all geometries in the GeoDataFrame
+    for geom in gdf.geometry:
         hexes = process_geometry(geom)  # Process the geometry and get hexagons
         waterhexes.update(hexes)  # Update the waterhexes set with the result
-
-    # Use ThreadPoolExecutor for parallel processing
-    with concurrent.futures.ThreadPoolExecutor() as executor:
-        # Submit all tasks to the executor
-        futures = {executor.submit(process_geometry_with_progress, geom): geom for geom in gdf.geometry}
-        
-        # Wait for all futures to complete
-        concurrent.futures.wait(futures)
 
     return list(waterhexes)
 
@@ -106,7 +95,7 @@ def write_waterhexes_to_file(waterhexes, filename):
 # Define the default_args dictionary for Airflow DAG
 default_args = {
     'owner': 'airflow',
-    'retries': 1,
+    'retries': 0,
     'retry_delay': timedelta(minutes=5),
 }
 
