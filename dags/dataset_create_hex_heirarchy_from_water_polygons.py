@@ -56,8 +56,8 @@ def process_and_identify_hexagons(extracted_folder, output_csv):
     shapefile_path = os.path.join(extracted_folder, "water-polygons/water-polygons-split-3857", "water_polygons.shp") # this could be more efficiently named/handled
     
     # Load the shapefile into a GeoDataFrame
-    print("Loading shapefiles from ")
-    print(shapefile_path)
+    print("Loading shapefiles...")
+    #print(shapefile_path)
     gdf = gpd.read_file(shapefile_path)
     print("...done")
     
@@ -70,7 +70,7 @@ def process_and_identify_hexagons(extracted_folder, output_csv):
     waterhexes = set()  # Initialize an empty set to store unique hexes
     for geom in gdf.geometry:
         geojson = geom.__geo_interface__  # Convert the geometry to GeoJSON format
-        hexes = h3.geo_to_cells(geojson, 10)  # Adjust resolution as needed
+        hexes = h3.geo_to_cells(geojson, 5)  # Adjust resolution as needed
         waterhexes.update(hexes)  # Update the waterhexes set with the result
     
     # Write identified water hexagons to CSV
