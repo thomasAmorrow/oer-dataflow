@@ -94,7 +94,7 @@ def save_and_return_csv_path(waterhexes, filename):
 
 # Define the DAG
 dag = DAG(
-    'osm_water_hexagons_etl',
+    'dataset_create_hex_heirarchy_from_water_polygons',
     default_args=default_args,
     description='DAG to download, process, and save OSM water hexagons',
     schedule_interval=None,  # Trigger manually or modify as needed
