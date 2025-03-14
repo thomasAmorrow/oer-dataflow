@@ -1,17 +1,28 @@
 from airflow import DAG
 from airflow.operators.python import PythonOperator
 from datetime import datetime, timedelta
-import os
 import requests
 import zipfile
+import os
 import geopandas as gpd
 import h3
 import csv
-import json
+import time
+
+# Default arguments for DAG
+default_args = {
+    'owner': 'airflow',
+    'depends_on_past': False,
+    'email_on_failure': False,
+    'email_on_retry': False,
+    'retries': 0,
+    'retry_delay': timedelta(minutes=5),
+}
 
 def download_osm_water_polygons(url, output_folder):
-    """Downloads the OSM water polygons shapefile."""
+    """Downloads and extracts the OSM water polygons shapefile."""
     zip_filename = os.path.join(output_folder, "water-polygons.zip")
+    extracted_folder = os.path.join(output_folder, "water-polygons")
     
     # Ensure output folder exists
     os.makedirs(output_folder, exist_ok=True)
@@ -28,36 +39,26 @@ def download_osm_water_polygons(url, output_folder):
         print("Download complete.")
     else:
         print("Failed to download the file.")
-        raise Exception("Download failed.")
+        return
     
-    return zip_filename
-
-
-def extract_zip(zip_filename, output_folder):
-    """Extract the downloaded ZIP file."""
-    extracted_folder = os.path.join(output_folder, "water-polygons")
-    print(f"Extracting files to {extracted_folder}...")
+    # Extract the ZIP file
+    print("Extracting files...")
     with zipfile.ZipFile(zip_filename, "r") as zip_ref:
         zip_ref.extractall(extracted_folder)
-    print("Extraction complete.")
-    return extracted_folder
-
+    print(f"Files extracted to {extracted_folder}")
 
 def load_water_polygons(shapefile_path):
-    """Loads the OSM water polygons shapefile and serializes it to GeoJSON."""
-    print(f"Loading shapefile from {shapefile_path}...")
+    """Loads OSM water polygons shapefile."""
+    print("Loading shapefiles...")
     gdf = gpd.read_file(shapefile_path, rows=1000)
-    print("Shapefile loaded.")
+    print("...done")
     
     # Reproject to WGS 84 if the CRS isn't already EPSG:4326
     if gdf.crs != 'EPSG:4326':
         gdf = gdf.to_crs(epsg=4326)
         print("Reprojected GeoDataFrame to EPSG:4326")
-    
-    # Serialize the GeoDataFrame to GeoJSON
-    geojson = gdf.to_json()
-    return geojson
 
+    return gdf
 
 def process_geometry(geom):
     """Process a single geometry and return its H3 hexagons."""
@@ -65,25 +66,19 @@ def process_geometry(geom):
     hexes = h3.geo_to_cells(geojson, 5)  # Adjust resolution as needed
     return hexes
 
-
-def identify_water_hexes(geojson_data):
-    """Identifies all hexagons that intersect water polygons."""
-    # Deserialize GeoJSON to GeoDataFrame
-    gdf = gpd.read_file(json.loads(geojson_data))
-    
+def identify_water_hexes(gdf):
+    """Determines all hexagons that intersect water polygons sequentially."""
     waterhexes = set()  # Initialize an empty set to store unique hexes
     
-    # Loop through all geometries in the GeoDataFrame
+    # Process each geometry sequentially
     for geom in gdf.geometry:
         hexes = process_geometry(geom)  # Process the geometry and get hexagons
         waterhexes.update(hexes)  # Update the waterhexes set with the result
 
-    return list(waterhexes)
-
+    return waterhexes
 
 def write_waterhexes_to_file(waterhexes, filename):
     """Write the set of water hexagons to a CSV file."""
-    print(f"Writing water hexagons to {filename}...")
     with open(filename, mode='w', newline='') as file:
         writer = csv.writer(file)
         writer.writerow(["H3_Index"])  # Header row
@@ -91,59 +86,53 @@ def write_waterhexes_to_file(waterhexes, filename):
             writer.writerow([hexagon])  # Write each hexagon index
     print(f"Water hexagons saved to {filename}")
 
-
-# Define the default_args dictionary for Airflow DAG
-default_args = {
-    'owner': 'airflow',
-    'retries': 0,
-    'retry_delay': timedelta(minutes=5),
-}
-
-# Initialize the DAG
+# Define the DAG
 dag = DAG(
     'dataset_create_hex_heirarchy_from_water_polygons',
     default_args=default_args,
-    description='Download, process, and save OSM water hexagons',
-    schedule_interval=None,  # Change this to your preferred schedule (e.g., '@daily')
-    start_date=datetime(2025, 3, 13),  # Set your desired start date
+    description='DAG to download, process, and save OSM water hexagons',
+    schedule_interval=None,  # Trigger manually or modify as needed
+    start_date=datetime(2025, 3, 13),
     catchup=False,
 )
 
-# Define the tasks in the DAG
+# Define task arguments
+WATER_POLYGON_URL = "https://osmdata.openstreetmap.de/download/water-polygons-split-3857.zip"
+OUTPUT_FOLDER = "/tmp/osm_water_data"
+SHAPEFILE_PATH = f"{OUTPUT_FOLDER}/water-polygons/water-polygons-split-3857/water_polygons.shp"
+OUTPUT_CSV = "/tmp/water_hexagons.csv"
+
+# Task 1: Download and unzip OSM water polygons
 download_task = PythonOperator(
-    task_id='download_osm_water_polygons',
+    task_id='download_and_unzip_osm_water_polygons',
     python_callable=download_osm_water_polygons,
-    op_args=["https://osmdata.openstreetmap.de/download/water-polygons-split-3857.zip", "osm_water_data"],
+    op_kwargs={'url': WATER_POLYGON_URL, 'output_folder': OUTPUT_FOLDER},
     dag=dag,
 )
 
-extract_task = PythonOperator(
-    task_id='extract_zip',
-    python_callable=extract_zip,
-    op_args=["{{ task_instance.xcom_pull(task_ids='download_osm_water_polygons') }}", "osm_water_data"],
-    dag=dag,
-)
-
+# Task 2: Load OSM water polygons shapefile
 load_task = PythonOperator(
-    task_id='load_water_polygons',
+    task_id='load_osm_water_polygons',
     python_callable=load_water_polygons,
-    op_args=["{{ task_instance.xcom_pull(task_ids='extract_zip') }}/water-polygons-split-3857/water_polygons.shp"],
+    op_kwargs={'shapefile_path': SHAPEFILE_PATH},
     dag=dag,
 )
 
+# Task 3: Identify water hexagons from the shapefile
 identify_task = PythonOperator(
-    task_id='identify_water_hexes',
+    task_id='identify_water_hexagons',
     python_callable=identify_water_hexes,
-    op_args=["{{ task_instance.xcom_pull(task_ids='load_water_polygons') }}"],  # Pass the serialized GeoDataFrame
+    op_kwargs={'gdf': "{{ task_instance.xcom_pull(task_ids='load_osm_water_polygons') }}"},
     dag=dag,
 )
 
+# Task 4: Write identified water hexagons to CSV
 write_task = PythonOperator(
-    task_id='write_waterhexes_to_file',
+    task_id='write_water_hexagons_to_csv',
     python_callable=write_waterhexes_to_file,
-    op_args=["{{ task_instance.xcom_pull(task_ids='identify_water_hexes') }}", "water_hexagons.csv"],
+    op_kwargs={'waterhexes': "{{ task_instance.xcom_pull(task_ids='identify_water_hexagons') }}", 'filename': OUTPUT_CSV},
     dag=dag,
 )
 
-# Set task dependencies
-download_task >> extract_task >> load_task >> identify_task >> write_task
+# Define task dependencies
+download_task >> load_task >> identify_task >> write_task
