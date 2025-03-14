@@ -8,6 +8,8 @@ import time
 from tqdm import tqdm
 import concurrent.futures
 import threading
+import psycopg2
+from psycopg2 import sql  # Ensure the psycopg2 sql module is imported for dynamic SQL
 
 def download_osm_water_polygons(url, output_folder):
     """Downloads and extracts the OSM water polygons shapefile with a progress bar."""
@@ -57,7 +59,7 @@ def load_water_polygons(shapefile_path):
 def process_geometry(geom):
     """Process a single geometry and return its H3 hexagons."""
     geojson = geom.__geo_interface__  # Convert the geometry to GeoJSON format
-    hexes = h3.geo_to_cells(geojson, 7)  # Adjust resolution as needed
+    hexes = h3.geo_to_cells(geojson, 6)  # Adjust resolution as needed
     return hexes
 
 def identify_water_hexes(gdf):
@@ -94,6 +96,27 @@ def write_waterhexes_to_file(waterhexes, filename):
             writer.writerow([hexagon])  # Write each hexagon index
     print(f"Water hexagons saved to {filename}")
 
+def insert_waterhexes_to_postgresql(waterhexes, db_params):
+    """Insert the set of water hexagons into a PostgreSQL database."""
+    # Establish a connection to the PostgreSQL database
+    conn = psycopg2.connect(**db_params)
+    cur = conn.cursor()
+    
+    # Insert each water hexagon into the database
+    for hexagon in waterhexes:
+        try:
+            # Use parameterized queries to avoid SQL injection
+            insert_query = sql.SQL("INSERT INTO water_hexagons (h3_index) VALUES (%s)")
+            cur.execute(insert_query, (hexagon,))
+        except Exception as e:
+            print(f"Error inserting hexagon {hexagon}: {e}")
+    
+    # Commit the transaction and close the connection
+    conn.commit()
+    cur.close()
+    conn.close()
+    print(f"{len(waterhexes)} water hexagons inserted into PostgreSQL.")
+
 if __name__ == "__main__":
     start_time = time.time()  # Record the start time
     
@@ -111,6 +134,16 @@ if __name__ == "__main__":
 
     # Save the water hexagons to a CSV file
     write_waterhexes_to_file(waterhexes, "water_hexagons.csv")
+
+        # Insert the water hexagons into PostgreSQL
+    db_params = {
+        'dbname': 'postgres',
+        'user': 'postgres',
+        'password': 'L3ArNiNg',
+        'host': 'localhost',  # or the appropriate IP address or container host
+        'port': '5432'  # Default PostgreSQL port
+    }
+    insert_waterhexes_to_postgresql(waterhexes, db_params)
     
     # Calculate the elapsed time
     end_time = time.time()
