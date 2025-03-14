@@ -50,7 +50,7 @@ def download_osm_water_polygons(url, output_folder):
 
 def process_and_identify_hexagons(extracted_folder, output_csv):
     """Loads the shapefile, processes geometry, and saves hexagons to CSV."""
-    shapefile_path = os.path.join(extracted_folder, "water-polygons-split-3857", "water_polygons.shp")
+    shapefile_path = os.path.join(extracted_folder, "water-polygons/water-polygons-split-3857", "water_polygons.shp") # this could be more efficiently named/handled
     
     # Load the shapefile into a GeoDataFrame
     print("Loading shapefiles from ")
