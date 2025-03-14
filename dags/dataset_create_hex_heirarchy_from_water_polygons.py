@@ -7,6 +7,9 @@ import os
 import geopandas as gpd
 import h3
 import csv
+import pandas as pd
+from airflow.providers.postgres.hooks.postgres import PostgresHook
+from sqlalchemy import create_engine
 
 # Default arguments for DAG
 default_args = {
@@ -78,6 +81,14 @@ def process_and_identify_hexagons(extracted_folder, output_csv):
             writer.writerow([hexagon])  # Write each hexagon index
     print(f"Water hexagons saved to {output_csv}")
 
+# Function to load H3 data to PostgreSQL
+def load_h3_to_postgis(csv_path, table_name, postgres_conn_id):
+    pg_hook = PostgresHook(postgres_conn_id)
+    engine = create_engine(pg_hook.get_uri())
+
+    df = pd.read_csv(csv_path)
+    df.to_sql(table_name, engine, if_exists='replace', index=False)
+
 # Define the DAG
 dag = DAG(
     'dataset_create_hex_heirarchy_from_water_polygons',
@@ -109,5 +120,16 @@ process_task = PythonOperator(
     dag=dag,
 )
 
+load_h3_task = PythonOperator(
+    task_id='load_h3_to_postgis',
+    python_callable=load_h3_to_postgis,
+    op_kwargs={
+        'csv_path': OUTPUT_CSV,
+        'table_name': 'h3_oceans',
+        'postgres_conn_id': 'oceexp-db',
+    },
+    dag=dag,
+)
+
 # Set task dependencies
-download_task >> process_task
+download_task >> process_task >> load_h3_task
