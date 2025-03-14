@@ -7,7 +7,6 @@ import os
 import geopandas as gpd
 import h3
 import csv
-import time
 
 # Default arguments for DAG
 default_args = {
@@ -20,7 +19,7 @@ default_args = {
 }
 
 def download_osm_water_polygons(url, output_folder):
-    """Downloads and extracts the OSM water polygons shapefile."""
+    """Downloads and extracts OSM water polygons zip file."""
     zip_filename = os.path.join(output_folder, "water-polygons.zip")
     extracted_folder = os.path.join(output_folder, "water-polygons")
     
@@ -39,7 +38,7 @@ def download_osm_water_polygons(url, output_folder):
         print("Download complete.")
     else:
         print("Failed to download the file.")
-        return
+        return None, None
     
     # Extract the ZIP file
     print("Extracting files...")
@@ -47,10 +46,15 @@ def download_osm_water_polygons(url, output_folder):
         zip_ref.extractall(extracted_folder)
     print(f"Files extracted to {extracted_folder}")
 
-def load_water_polygons(shapefile_path):
-    """Loads OSM water polygons shapefile."""
+    return zip_filename, extracted_folder
+
+def process_and_identify_hexagons(extracted_folder, output_csv):
+    """Loads the shapefile, processes geometry, and saves hexagons to CSV."""
+    shapefile_path = os.path.join(extracted_folder, "water-polygons-split-3857", "water_polygons.shp")
+    
+    # Load the shapefile into a GeoDataFrame
     print("Loading shapefiles...")
-    gdf = gpd.read_file(shapefile_path)
+    gdf = gpd.read_file(shapefile_path, rows=1000)
     print("...done")
     
     # Reproject to WGS 84 if the CRS isn't already EPSG:4326
@@ -58,21 +62,11 @@ def load_water_polygons(shapefile_path):
         gdf = gdf.to_crs(epsg=4326)
         print("Reprojected GeoDataFrame to EPSG:4326")
 
-    return gdf
-
-def process_geometry(geom):
-    """Process a single geometry and return its H3 hexagons."""
-    geojson = geom.__geo_interface__  # Convert the geometry to GeoJSON format
-    hexes = h3.geo_to_cells(geojson, 7)  # Adjust resolution as needed
-    return hexes
-
-def identify_water_hexes(gdf, output_csv):
-    """Determines all hexagons that intersect water polygons sequentially and writes to a CSV."""
+    # Identify water hexagons and save to CSV
     waterhexes = set()  # Initialize an empty set to store unique hexes
-    
-    # Process each geometry sequentially
     for geom in gdf.geometry:
-        hexes = process_geometry(geom)  # Process the geometry and get hexagons
+        geojson = geom.__geo_interface__  # Convert the geometry to GeoJSON format
+        hexes = h3.geo_to_cells(geojson, 5)  # Adjust resolution as needed
         waterhexes.update(hexes)  # Update the waterhexes set with the result
     
     # Write identified water hexagons to CSV
@@ -82,15 +76,6 @@ def identify_water_hexes(gdf, output_csv):
         for hexagon in waterhexes:
             writer.writerow([hexagon])  # Write each hexagon index
     print(f"Water hexagons saved to {output_csv}")
-
-def save_and_return_csv_path(waterhexes, filename):
-    """Saves the water hexagons to a CSV file and returns the file path."""
-    with open(filename, mode='w', newline='') as file:
-        writer = csv.writer(file)
-        writer.writerow(["H3_Index"])
-        for hexagon in waterhexes:
-            writer.writerow([hexagon])
-    return filename
 
 # Define the DAG
 dag = DAG(
@@ -105,40 +90,23 @@ dag = DAG(
 # Define task arguments
 WATER_POLYGON_URL = "https://osmdata.openstreetmap.de/download/water-polygons-split-3857.zip"
 OUTPUT_FOLDER = "/tmp/osm_water_data"
-SHAPEFILE_PATH = f"{OUTPUT_FOLDER}/water-polygons/water-polygons-split-3857/water_polygons.shp"
 OUTPUT_CSV = "/tmp/water_hexagons.csv"
 
 # Task 1: Download and unzip OSM water polygons
 download_task = PythonOperator(
-    task_id='download_and_unzip_osm_water_polygons',
+    task_id='download_osm_water_polygons',
     python_callable=download_osm_water_polygons,
     op_kwargs={'url': WATER_POLYGON_URL, 'output_folder': OUTPUT_FOLDER},
     dag=dag,
 )
 
-# Task 2: Load OSM water polygons shapefile
-load_task = PythonOperator(
-    task_id='load_osm_water_polygons',
-    python_callable=load_water_polygons,
-    op_kwargs={'shapefile_path': SHAPEFILE_PATH},
+# Task 2: Process shapefile and identify hexagons
+process_task = PythonOperator(
+    task_id='process_and_identify_hexagons',
+    python_callable=process_and_identify_hexagons,
+    op_kwargs={'extracted_folder': OUTPUT_FOLDER, 'output_csv': OUTPUT_CSV},
     dag=dag,
 )
 
-# Task 3: Identify water hexagons and write to CSV
-identify_task = PythonOperator(
-    task_id='identify_and_save_water_hexagons',
-    python_callable=identify_water_hexes,
-    op_kwargs={'gdf': "{{ task_instance.xcom_pull(task_ids='load_osm_water_polygons') }}", 'output_csv': OUTPUT_CSV},
-    dag=dag,
-)
-
-# Task 4: Write identified water hexagons to CSV (passing only the file path to the next task)
-write_task = PythonOperator(
-    task_id='write_water_hexagons_to_csv',
-    python_callable=save_and_return_csv_path,
-    op_kwargs={'waterhexes': "{{ task_instance.xcom_pull(task_ids='identify_and_save_water_hexagons') }}", 'filename': OUTPUT_CSV},
-    dag=dag,
-)
-
-# Define task dependencies
-download_task >> load_task >> identify_task >> write_task
+# Set task dependencies
+download_task >> process_task
