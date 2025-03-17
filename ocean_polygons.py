@@ -86,6 +86,16 @@ def identify_water_hexes(gdf):
 
     return waterhexes
 
+def get_child_hexes(hexlist,resolution):
+    
+    # Set for unique children
+    childhexes = set()
+
+    for hex in hexlist:
+        childs = h3.cell_to_children(hex, resolution)
+        childhexes.update(childs)
+
+    return childhexes
 
 def write_waterhexes_to_file(waterhexes, filename):
     """Write the set of water hexagons to a CSV file."""
@@ -130,10 +140,13 @@ if __name__ == "__main__":
     gdf = load_water_polygons("./osm_water_data/water-polygons/water-polygons-split-3857/water_polygons.shp")
 
     # Identify the water hexagons with parallelization
-    waterhexes = identify_water_hexes(gdf)
+    waterhexes6 = identify_water_hexes(gdf)
+
+    # Get child hexagons down to level 8
+    waterhexes10 = get_child_hexes(waterhexes6, 8)
 
     # Save the water hexagons to a CSV file
-    write_waterhexes_to_file(waterhexes, "water_hexagons.csv")
+    write_waterhexes_to_file(waterhexes6, "water_hexagons6.csv")
 
         # Insert the water hexagons into PostgreSQL
     db_params = {
@@ -143,7 +156,7 @@ if __name__ == "__main__":
         'host': 'localhost',  # or the appropriate IP address or container host
         'port': '5432'  # Default PostgreSQL port
     }
-    insert_waterhexes_to_postgresql(waterhexes, db_params)
+    insert_waterhexes_to_postgresql(waterhexes10, db_params)
     
     # Calculate the elapsed time
     end_time = time.time()

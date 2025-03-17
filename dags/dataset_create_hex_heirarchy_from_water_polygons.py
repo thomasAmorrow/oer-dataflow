@@ -76,7 +76,7 @@ def process_and_identify_hexagons(extracted_folder, output_csv):
     # Write identified water hexagons to CSV
     with open(output_csv, mode='w', newline='') as file:
         writer = csv.writer(file)
-        writer.writerow(["H3_Index"])  # Header row
+        writer.writerow(["h3_index"])  # Header row
         for hexagon in waterhexes:
             writer.writerow([hexagon])  # Write each hexagon index
     print(f"Water hexagons saved to {output_csv}")
