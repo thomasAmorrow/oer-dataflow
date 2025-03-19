@@ -125,7 +125,7 @@ load_h3_task = PythonOperator(
     python_callable=load_h3_to_postgis,
     op_kwargs={
         'csv_path': OUTPUT_CSV,
-        'table_name': 'h3_oceans',
+        'table_name': 'hex_ocean_polys_06',
         'postgres_conn_id': 'oceexp-db',
     },
     dag=dag,

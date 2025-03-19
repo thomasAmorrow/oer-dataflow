@@ -19,16 +19,16 @@ with DAG(
 ) as dag:
 
     # Task: Create the h3_children table
-    create_h3_children = PostgresOperator(
+    dataset_create_child_hexagons = PostgresOperator(
         task_id='create_h3_children',
         postgres_conn_id='your_postgres_connection_id',  # Define your connection ID
         sql="""
-            CREATE TABLE h3_children_12 AS
+            CREATE TABLE h3_oceans AS
             SELECT
                 child_hexagon
             FROM
                 h3_oceans,
-                LATERAL H3_Cell_to_Children(CAST("H3_Index" AS H3Index), 12) AS child_hexagon;
+                LATERAL H3_Cell_to_Children(CAST("H3_Index" AS H3Index), 8) AS child_hexagon;
         """,
     )
 
