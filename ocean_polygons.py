@@ -143,10 +143,10 @@ if __name__ == "__main__":
     waterhexes6 = identify_water_hexes(gdf)
 
     # Get child hexagons down to level 8
-    waterhexes10 = get_child_hexes(waterhexes6, 8)
+    waterhexes8 = get_child_hexes(waterhexes6, 8) # 8 seems to be acceptable jump here, might try to run it again up to 10?
 
     # Save the water hexagons to a CSV file
-    write_waterhexes_to_file(waterhexes6, "water_hexagons6.csv")
+    write_waterhexes_to_file(waterhexes8, "water_hexagons8.csv")
 
         # Insert the water hexagons into PostgreSQL
     db_params = {
@@ -156,7 +156,7 @@ if __name__ == "__main__":
         'host': 'localhost',  # or the appropriate IP address or container host
         'port': '5432'  # Default PostgreSQL port
     }
-    insert_waterhexes_to_postgresql(waterhexes10, db_params)
+    #insert_waterhexes_to_postgresql(waterhexes10, db_params)
     
     # Calculate the elapsed time
     end_time = time.time()

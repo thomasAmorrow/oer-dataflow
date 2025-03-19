@@ -1,0 +1,12 @@
+[Unit]
+Description=docker boot
+After=docker.service
+
+[Service]
+Type=oneshot
+RemainAfterExit=yes
+WorkingDirectory=/home/ssm-user/oer-ega
+ExecStart=/usr/bin/docker compose -f /home/ssm-user/oer-ega/docker-compose.yml up -d --remove-orphans
+
+[Install]
+WantedBy=multi-user.target
