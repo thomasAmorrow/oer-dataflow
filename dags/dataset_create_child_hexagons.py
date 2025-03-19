@@ -21,7 +21,7 @@ with DAG(
     # Task: Create the h3_children table
     create_h3_children = PostgresOperator(
         task_id='create_h3_children',
-        postgres_conn_id='your_postgres_connection_id',  # Define your connection ID
+        postgres_conn_id='oceexp-db',  # Define your connection ID
         sql="""
             CREATE TABLE h3_children_08 AS
             SELECT
