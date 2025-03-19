@@ -10,6 +10,7 @@ import csv
 import pandas as pd
 from airflow.providers.postgres.hooks.postgres import PostgresHook
 from sqlalchemy import create_engine
+from airflow.providers.postgres.operators.postgres import PostgresOperator
 
 # Default arguments for DAG
 default_args = {
@@ -131,5 +132,49 @@ load_h3_task = PythonOperator(
     dag=dag,
 )
 
+# Task: Create the h3_children table
+create_h3_primary = PostgresOperator(
+    task_id='create_h3_primary',
+    postgres_conn_id='oceexp-db',  # Define your connection ID
+    sql="""
+        CREATE TABLE h3_oceans AS
+        SELECT
+            hex_08
+        FROM
+            hex_ocean_polys_06,
+            LATERAL H3_Cell_to_Children(CAST("h3_index" AS H3Index), 8) AS hex_08;
+    """,
+)
+
+# Task: Create the h3_children table
+create_h3_lineage = PostgresOperator(
+    task_id='create_h3_lineage',
+    postgres_conn_id='oceexp-db',  # Define your connection ID
+    sql="""
+        ALTER TABLE h3_oceans
+        ADD
+            hex_07 H3INDEX,
+            hex_06 H3INDEX,
+            hex_05 H3INDEX,
+            hex_04 H3INDEX,
+            hex_03 H3INDEX,
+            hex_02 H3INDEX,
+            hex_01 H3INDEX,
+            hex_00 H3INDEX;
+
+        UPDATE h3_oceans
+        SET 
+            hex_07 = h3_cell_to_parent(hex_08, 7),
+            hex_06 = h3_cell_to_parent(hex_08, 6),
+            hex_05 = h3_cell_to_parent(hex_08, 5),
+            hex_04 = h3_cell_to_parent(hex_08, 4),
+            hex_03 = h3_cell_to_parent(hex_08, 3),
+            hex_02 = h3_cell_to_parent(hex_08, 2),
+            hex_01 = h3_cell_to_parent(hex_08, 1),
+            hex_00 = h3_cell_to_parent(hex_08, 0);
+    """,
+)
+
+
 # Set task dependencies
-download_task >> process_task >> load_h3_task
+download_task >> process_task >> load_h3_task >> create_h3_primary >> create_h3_lineage
