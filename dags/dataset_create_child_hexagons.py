@@ -12,23 +12,23 @@ default_args = {
 
 # Initialize the DAG
 with DAG(
-    'h3_child_generation',
+    'dataset_create_child_hexagons',
     default_args=default_args,
     schedule_interval=None,  # You can set your schedule interval here
     catchup=False,
 ) as dag:
 
     # Task: Create the h3_children table
-    dataset_create_child_hexagons = PostgresOperator(
+    create_h3_children = PostgresOperator(
         task_id='create_h3_children',
         postgres_conn_id='your_postgres_connection_id',  # Define your connection ID
         sql="""
-            CREATE TABLE h3_oceans AS
+            CREATE TABLE h3_children_12 AS
             SELECT
                 child_hexagon
             FROM
                 h3_oceans,
-                LATERAL H3_Cell_to_Children(CAST("H3_Index" AS H3Index), 8) AS child_hexagon;
+                LATERAL H3_Cell_to_Children(CAST("H3_Index" AS H3Index), 12) AS child_hexagon;
         """,
     )
 
