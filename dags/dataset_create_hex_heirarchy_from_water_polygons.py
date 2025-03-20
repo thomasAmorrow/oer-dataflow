@@ -156,13 +156,27 @@ create_h3_lineage = PostgresOperator(
     sql="""
         ALTER TABLE h3_oceans
         ADD
-            hex_07 H3INDEX,
-            hex_06 H3INDEX,
-            hex_05 H3INDEX,
-            hex_04 H3INDEX,
-            hex_03 H3INDEX,
-            hex_02 H3INDEX,
-            hex_01 H3INDEX,
+            hex_07 H3INDEX;
+        ALTER TABLE h3_oceans
+        ADD
+            hex_06 H3INDEX;
+        ALTER TABLE h3_oceans
+        ADD
+            hex_05 H3INDEX;
+        ALTER TABLE h3_oceans
+        ADD
+            hex_04 H3INDEX;
+        ALTER TABLE h3_oceans
+        ADD
+            hex_03 H3INDEX;
+        ALTER TABLE h3_oceans
+        ADD
+            hex_02 H3INDEX;
+        ALTER TABLE h3_oceans
+        ADD
+            hex_01 H3INDEX;
+        ALTER TABLE h3_oceans
+        ADD
             hex_00 H3INDEX;
 
         UPDATE h3_oceans
