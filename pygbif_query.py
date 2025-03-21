@@ -20,7 +20,7 @@ def rearrange_to_counter_clockwise(polygon_wkt):
     return dumps(polygon)
 
 # gimme a cell near Hawaii
-cells = ['835d12fffffffff']
+cells = ['85f3ad87fffffff']
 
 # gimme the polys
 polygon = h3.cells_to_geo(cells, tight=True)
@@ -42,7 +42,7 @@ if not polygeo.exterior.is_ccw:
 
 # Search for critters (occurrences) within the polygon
 critters = occ.search(geometry=polygeo.wkt, limit=20000, depth="200,10000", fields=['latitude','longitude','depth','taxonKey','scientificName', 'kingdomKey', 'phylumKey', 'classKey', 'orderKey', 'familyKey', 'genusKey', 'basisOfRecord'])
-#print("Critters found:", critters)
+print("Critters found:", critters)
 
 # Prepare a list to store occurrences
 occurrences = []
@@ -84,6 +84,7 @@ for critter in critters['results']:
 # Convert occurrences list to DataFrame and print only those with depth
 occurrences_df = pd.DataFrame(occurrences)
 print(occurrences_df)
+occurrences_df.to_csv('occurrences.csv', index=False)
 
 # Plot the polygon on a map using GeoPandas and Matplotlib
 gdf = gpd.GeoDataFrame([polygeo], columns=['geometry'])
