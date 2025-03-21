@@ -139,16 +139,19 @@ create_h3_primary = PostgresOperator(
     sql="""
         CREATE EXTENSION IF NOT EXISTS h3;
         CREATE EXTENSION IF NOT EXISTS h3_postgis CASCADE;
+        DROP TABLE IF EXISTS h3_oceans;
 
         CREATE TABLE h3_oceans AS
         SELECT
             hex_08
         FROM
             hex_ocean_polys_06,
-            LATERAL H3_Cell_to_Children(CAST("h3_index" AS H3Index), 8) AS hex_08;
+            LATERAL H3_Cell_to_Children(CAST("h3_index" AS H3Index), 8) AS hex_06;
 
         ALTER TABLE h3_oceans
-        ADD PRIMARY KEY (hex_08); 
+        ADD PRIMARY KEY (hex_08);
+
+        DROP TABLE IF EXISTS hex_ocean_polys_06; 
     """,
 )
 
