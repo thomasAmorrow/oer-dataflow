@@ -149,7 +149,9 @@ create_h3_primary = PostgresOperator(
             LATERAL H3_Cell_to_Children(CAST("h3_index" AS H3Index), 5) AS hex_05;
 
         ALTER TABLE h3_oceans
-        ADD PRIMARY KEY (hex_05); 
+        ADD PRIMARY KEY (hex_05);
+
+        DROP TABLE IF EXISTS hex_ocean_polys_04; 
     """,
 )
 
