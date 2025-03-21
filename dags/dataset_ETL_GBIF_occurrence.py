@@ -2,7 +2,7 @@ import logging
 import geopandas as gpd
 import pandas as pd
 import h3
-from shapely.geometry import shape
+from shapely.geometry import shape, Polygon
 from shapely.wkt import loads, dumps
 from pygbif import occurrences as occ
 from airflow import DAG
