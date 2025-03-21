@@ -8,7 +8,8 @@ from pygbif import occurrences as occ
 from airflow import DAG
 from airflow.providers.postgres.hooks.postgres import PostgresHook
 from airflow.operators.python_operator import PythonOperator
-from datetime import datetime
+from datetime import datetime, timedelta
+
 
 
 # Function to check if a polygon's coordinates are counter-clockwise
@@ -106,7 +107,7 @@ def fetch_h3_indices_and_create_table(postgres_conn_id='oceexp-db'):
     cursor = conn.cursor()
 
     # Fetch all hexagon H3 indices
-    cursor.execute("SELECT DISTINCT hex_05 FROM h3_oceans LIMIT 20") # limit to 20 for testing/dev
+    cursor.execute("SELECT DISTINCT hex_05 FROM h3_oceans LIMIT 5") # limit to 20 for testing/dev
     indices = cursor.fetchall()
 
     # Create the results table if it doesn't exist
@@ -134,13 +135,24 @@ def fetch_h3_indices_and_create_table(postgres_conn_id='oceexp-db'):
     return [index[0] for index in indices]
 
 
+# Default arguments for DAG
+default_args = {
+    'owner': 'airflow',
+    'depends_on_past': False,
+    'email_on_failure': False,
+    'email_on_retry': False,
+    'retries': 0,
+    'retry_delay': timedelta(minutes=5),
+}
+
 # Define the DAG
 dag = DAG(
     'dataset_ETL_GBIF_occurrence',
+    default_args=default_args,
     description='Fetch occurrences for H3 hexagons and save to PostgreSQL',
-    schedule_interval='@daily',
-    start_date=datetime(2025, 3, 21),
-    catchup=False
+    schedule_interval=None,  # Trigger manually or modify as needed
+    start_date=datetime(2025, 3, 13),
+    catchup=False,
 )
 
 # Task to fetch H3 indices
