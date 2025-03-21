@@ -24,7 +24,6 @@ def rearrange_to_counter_clockwise(polygon_wkt):
         polygon = Polygon(list(polygon.exterior.coords)[::-1])
     return dumps(polygon)
 
-
 def fetch_and_save_occurrences(h3_index, postgres_conn_id='oceexp-db'):
     # Connect to PostgreSQL
     pg_hook = PostgresHook(postgres_conn_id)
@@ -38,11 +37,11 @@ def fetch_and_save_occurrences(h3_index, postgres_conn_id='oceexp-db'):
     polygeo = shape(polygon)
 
     # If the polygon is not counter-clockwise, rearrange it
-    if not polygeo.exterior.is_ccw:
-        logging.info(f"Rearranging polygon for H3 index {h3_index} to counter-clockwise")
-        polygon_wkt = dumps(polygeo)
-        rearranged_wkt = rearrange_to_counter_clockwise(polygon_wkt)
-        polygeo = shape(loads(rearranged_wkt))
+    #if not polygeo.exterior.is_ccw:
+    #    logging.info(f"Rearranging polygon for H3 index {h3_index} to counter-clockwise")
+    #    polygon_wkt = dumps(polygeo)
+    #    rearranged_wkt = rearrange_to_counter_clockwise(polygon_wkt)
+    #    polygeo = shape(loads(rearranged_wkt))
 
     # Search for occurrences in the polygon
     critters = occ.search(geometry=polygeo.wkt, limit=10000, depth='200,12000', fields=[
