@@ -137,6 +137,9 @@ create_h3_primary = PostgresOperator(
     task_id='create_h3_primary',
     postgres_conn_id='oceexp-db',  # Define your connection ID
     sql="""
+        CREATE EXTENSION IF NOT EXISTS h3;
+        CREATE EXTENSION IF NOT EXISTS h3_postgis CASCADE;
+
         CREATE TABLE h3_oceans AS
         SELECT
             hex_08
