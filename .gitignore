@@ -2,3 +2,6 @@ logs
 dags/__pycache__
 .env
 data
+.venv
+pygbif_query
+__pycache__/*

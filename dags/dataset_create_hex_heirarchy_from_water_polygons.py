@@ -178,20 +178,42 @@ create_h3_lineage = PostgresOperator(
         ALTER TABLE h3_oceans
         ADD
             hex_00 H3INDEX;
+    """,
+)
 
+
+# Task: Create the h3_children table
+fill_h3_lineage = PostgresOperator(
+    task_id='fill_h3_lineage',
+    postgres_conn_id='oceexp-db',  # Define your connection ID
+    sql="""
         UPDATE h3_oceans
         SET 
-            hex_07 = h3_cell_to_parent(hex_08, 7),
-            hex_06 = h3_cell_to_parent(hex_08, 6),
-            hex_05 = h3_cell_to_parent(hex_08, 5),
-            hex_04 = h3_cell_to_parent(hex_08, 4),
-            hex_03 = h3_cell_to_parent(hex_08, 3),
-            hex_02 = h3_cell_to_parent(hex_08, 2),
-            hex_01 = h3_cell_to_parent(hex_08, 1),
+            hex_07 = h3_cell_to_parent(hex_08, 7);
+        UPDATE h3_oceans
+        SET 
+            hex_06 = h3_cell_to_parent(hex_08, 6);
+        UPDATE h3_oceans
+        SET 
+            hex_05 = h3_cell_to_parent(hex_08, 5);
+        UPDATE h3_oceans
+        SET 
+            hex_04 = h3_cell_to_parent(hex_08, 4);
+        UPDATE h3_oceans
+        SET 
+            hex_03 = h3_cell_to_parent(hex_08, 3);
+        UPDATE h3_oceans
+        SET
+            hex_02 = h3_cell_to_parent(hex_08, 2);
+        UPDATE h3_oceans
+        SET
+            hex_01 = h3_cell_to_parent(hex_08, 1);
+        UPDATE h3_oceans
+        SET
             hex_00 = h3_cell_to_parent(hex_08, 0);
     """,
 )
 
 
 # Set task dependencies
-download_task >> process_task >> load_h3_task >> create_h3_primary >> create_h3_lineage
+download_task >> process_task >> load_h3_task >> create_h3_primary >> create_h3_lineage >> fill_h3_lineage
