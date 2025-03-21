@@ -43,6 +43,9 @@ def fetch_and_save_occurrences(h3_index, postgres_conn_id='oceexp-db'):
     #    rearranged_wkt = rearrange_to_counter_clockwise(polygon_wkt)
     #    polygeo = shape(loads(rearranged_wkt))
 
+    # If the polygon crosses the antimeridian, split it!
+    # create function here
+
     # Search for occurrences in the polygon
     critters = occ.search(geometry=polygeo.wkt, limit=10000, depth='200,12000', fields=[
         'latitude', 'longitude', 'depth', 'taxonKey', 'scientificName', 'kingdomKey', 'phylumKey',
