@@ -31,6 +31,8 @@ def fetch_and_save_occurrences(h3_index, postgres_conn_id='oceexp-db'):
     conn = pg_hook.get_conn()
     cursor = conn.cursor()
 
+    logging.info(f"Querying index {h3_index} ...")
+
     # Get polygon geometry
     polygon = h3.cells_to_geo([h3_index], tight=True)
     polygeo = shape(polygon)
