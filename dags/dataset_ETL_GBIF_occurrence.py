@@ -107,7 +107,7 @@ def fetch_h3_indices_and_create_table(postgres_conn_id='oceexp-db'):
     cursor = conn.cursor()
 
     # Fetch all hexagon H3 indices
-    cursor.execute("SELECT DISTINCT hex_05 FROM h3_oceans LIMIT 5") # limit to 20 for testing/dev
+    cursor.execute("SELECT DISTINCT hex_05 FROM h3_oceans") # it work let's try em all!
     indices = cursor.fetchall()
 
     # Create the results table if it doesn't exist
