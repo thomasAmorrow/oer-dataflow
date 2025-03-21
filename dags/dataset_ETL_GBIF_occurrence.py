@@ -90,7 +90,7 @@ def fetch_and_save_occurrences(h3_index, postgres_conn_id='oceexp-db'):
     # Insert occurrences into PostgreSQL
     for _, row in occurrences_df.iterrows():
         cursor.execute("""
-            INSERT INTO hexagon_occurrences (latitude, longitude, depth, taxonkey, scientificname, kingdomKey,
+            INSERT INTO gbif_occurrences (latitude, longitude, depth, taxonkey, scientificname, kingdomKey,
             phylumKey, classKey, orderKey, familyKey, genusKey, basisofrecord, hex_05)
             VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
             """, (row['latitude'], row['longitude'], row['depth'], row['taxonkey'], row['scientificname'],
@@ -112,6 +112,8 @@ def fetch_h3_indices_and_create_table(postgres_conn_id='oceexp-db'):
 
     # Create the results table if it doesn't exist
     cursor.execute("""
+        DROP TABLE IF EXISTS gbif_occurrences;          
+
         CREATE TABLE IF NOT EXISTS gbif_occurrences (
             id SERIAL PRIMARY KEY,
             latitude DOUBLE PRECISION,
@@ -127,7 +129,7 @@ def fetch_h3_indices_and_create_table(postgres_conn_id='oceexp-db'):
             genusKey INT,
             basisofrecord TEXT,
             hex_05 H3INDEX
-        )
+        );
     """)
     conn.commit()
 
