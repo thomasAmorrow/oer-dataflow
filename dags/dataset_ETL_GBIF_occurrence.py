@@ -102,7 +102,7 @@ def fetch_and_save_occurrences(h3_index, postgres_conn_id='oceexp-db'):
             for h3_child in child_hexes:
                 logging.info(f"Accessing child {h3_child}...")
                 fetch_and_save_occurrences(h3_child)
-        else:
+        elif len(occurrences_df)<300 and h3.get_resolution(h3_index)<6:
             # Connect to PostgreSQL
             pg_hook = PostgresHook(postgres_conn_id)
             conn = pg_hook.get_conn()
@@ -117,6 +117,12 @@ def fetch_and_save_occurrences(h3_index, postgres_conn_id='oceexp-db'):
                         row['genusKey'], row['basisofrecord']))
                 conn.commit()
             logging.info(f"Inserted {len(occurrences_df)} occurrences for H3 index {h3_index} into database.")
+        else:
+            logging.info(f"Maximum resolution hit at {h3_index}, downloading csv as an alternative...")
+            occ.download(format='SIMPLE_CSV', user='oerdevops', pwd='oceanexploration', geometry=polygeo.wkt, limit=100000, depth='200,12000', fields=[
+                'latitude', 'longitude', 'depth', 'taxonKey', 'scientificName', 'kingdomKey', 'phylumKey',
+                'classKey', 'orderKey', 'familyKey', 'genusKey', 'basisOfRecord'])
+
 
 
 def fetch_h3_indices_and_create_table(postgres_conn_id='oceexp-db'):
