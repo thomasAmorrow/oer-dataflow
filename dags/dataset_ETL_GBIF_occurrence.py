@@ -103,7 +103,7 @@ def fetch_and_save_occurrences(h3_index, postgres_conn_id='oceexp-db'):
     for _, row in occurrences_df.iterrows():
         cursor.execute("""
             INSERT INTO gbif_occurrences (latitude, longitude, depth, taxonkey, scientificname, kingdomKey,
-            phylumKey, classKey, orderKey, familyKey, genusKey, basisofrecord, hex_05)
+            phylumKey, classKey, orderKey, familyKey, genusKey, basisofrecord, hex_03)
             VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
             """, (row['latitude'], row['longitude'], row['depth'], row['taxonkey'], row['scientificname'],
                   row['kingdomKey'], row['phylumKey'], row['classKey'], row['orderKey'], row['familyKey'],
