@@ -101,7 +101,7 @@ def fetch_and_save_occurrences(h3_index, postgres_conn_id='oceexp-db'):
         return
     else:
         # Insert occurrences into PostgreSQL
-        if len(occurrences_df)==300:
+        if len(occurrences_df)==300 and h3.get_resolution(h3_index)<6:
             child_hexes=h3.cell_to_children(h3_index)
             logging.info(f"Maximum records hit in H3 hex {h3_index}, going deeper to resolution {h3.get_resolution(h3_index)+1},\n Child hexagons are {child_hexes} ")
             for h3_child in child_hexes:
