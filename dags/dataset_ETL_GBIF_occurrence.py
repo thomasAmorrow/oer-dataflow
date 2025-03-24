@@ -54,12 +54,14 @@ def fetch_and_save_occurrences(h3_index, postgres_conn_id='oceexp-db'):
     #    rearranged_wkt = rearrange_to_counter_clockwise(polygon_wkt)
     #    polygeo = shape(loads(rearranged_wkt))
 
+    critters = []
+    occurrences = []
+    occurrences_df = pd.DataFrame(occurrences)
+
     # Search for occurrences in the polygon
     critters = occ.search(geometry=polygeo.wkt, limit=10000, depth='200,12000', fields=[
         'latitude', 'longitude', 'depth', 'taxonKey', 'scientificName', 'kingdomKey', 'phylumKey',
         'classKey', 'orderKey', 'familyKey', 'genusKey', 'basisOfRecord'])
-
-    occurrences = []
 
     # Extract data for each occurrence
     for critter in critters['results']:
@@ -100,9 +102,6 @@ def fetch_and_save_occurrences(h3_index, postgres_conn_id='oceexp-db'):
     else:
         # Insert occurrences into PostgreSQL
         if len(occurrences_df)==300:
-            critters = []
-            occurrences = []
-            occurrences_df = pd.DataFrame(occurrences)
             child_hexes=h3.cell_to_children(h3_index)
             print(child_hexes)
             logging.info(f"Maximum records hit in H3 hex {h3_index}, going deeper to resolution {h3.get_resolution(h3_index)+1}")
