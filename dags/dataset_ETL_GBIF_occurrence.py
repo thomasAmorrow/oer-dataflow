@@ -125,7 +125,7 @@ def fetch_and_save_occurrences(h3_index, postgres_conn_id='oceexp-db'):
                 'limit': 100000,
                 'depth': '200,12000'  # Specify depth range correctly (check API documentation)
             }
-            occ.download(format='SIMPLE_CSV', user='oerdevops', pwd='oceanexploration',query)
+            occ.download(format='SIMPLE_CSV', user='oerdevops', pwd='oceanexploration', query=query)
 
 
 
