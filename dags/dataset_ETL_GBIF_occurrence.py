@@ -90,7 +90,7 @@ def fetch_and_save_occurrences(h3_index, postgres_conn_id='oceexp-db'):
                 'familyKey': family,
                 'genusKey': genus,
                 'basisofrecord': basisofrecord,
-                'h3_index': h3_index  # Add the h3 index to the occurrences
+                'h3_index_02': h3_index  # Add the h3 index to the occurrences
             })
 
     # Convert occurrences to DataFrame
@@ -100,16 +100,22 @@ def fetch_and_save_occurrences(h3_index, postgres_conn_id='oceexp-db'):
         return
 
     # Insert occurrences into PostgreSQL
-    for _, row in occurrences_df.iterrows():
-        cursor.execute("""
-            INSERT INTO gbif_occurrences (latitude, longitude, depth, taxonkey, scientificname, kingdomKey,
-            phylumKey, classKey, orderKey, familyKey, genusKey, basisofrecord, hex_03)
-            VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
-            """, (row['latitude'], row['longitude'], row['depth'], row['taxonkey'], row['scientificname'],
-                  row['kingdomKey'], row['phylumKey'], row['classKey'], row['orderKey'], row['familyKey'],
-                  row['genusKey'], row['basisofrecord'], row['h3_index']))
-    conn.commit()
-    logging.info(f"Inserted {len(occurrences_df)} occurrences for H3 index {h3_index} into database.")
+    if len(occurrences_df)==300:
+        child_hexes=h3.cell_to_children(h3_index)
+        logging.info(f"Maximum records hit in hex {h3_index}, going deeper...")
+        for h3_child in child_hexes:
+           fetch_and_save_occurrences(h3_child)
+    else:
+        for _, row in occurrences_df.iterrows():
+            cursor.execute("""
+                INSERT INTO gbif_occurrences (latitude, longitude, depth, taxonkey, scientificname, kingdomKey,
+                phylumKey, classKey, orderKey, familyKey, genusKey, basisofrecord)
+                VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+                """, (row['latitude'], row['longitude'], row['depth'], row['taxonkey'], row['scientificname'],
+                    row['kingdomKey'], row['phylumKey'], row['classKey'], row['orderKey'], row['familyKey'],
+                    row['genusKey'], row['basisofrecord']))
+            conn.commit()
+            logging.info(f"Inserted {len(occurrences_df)} occurrences for H3 index {h3_index} into database.")
 
 
 def fetch_h3_indices_and_create_table(postgres_conn_id='oceexp-db'):
@@ -119,7 +125,7 @@ def fetch_h3_indices_and_create_table(postgres_conn_id='oceexp-db'):
     cursor = conn.cursor()
 
     # Fetch all hexagon H3 indices
-    cursor.execute("SELECT DISTINCT hex_03 FROM h3_oceans") # lower resolution due to failed API calls
+    cursor.execute("SELECT DISTINCT hex_02 FROM h3_oceans") # lower resolution due to failed API calls
     indices = cursor.fetchall()
 
     # Create the results table if it doesn't exist
@@ -139,8 +145,7 @@ def fetch_h3_indices_and_create_table(postgres_conn_id='oceexp-db'):
             orderKey TEXT,
             familyKey TEXT,
             genusKey TEXT,
-            basisofrecord TEXT,
-            hex_03 H3INDEX
+            basisofrecord TEXT
         );
     """)
     conn.commit()
