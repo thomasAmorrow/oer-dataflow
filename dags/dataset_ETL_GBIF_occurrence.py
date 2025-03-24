@@ -119,9 +119,13 @@ def fetch_and_save_occurrences(h3_index, postgres_conn_id='oceexp-db'):
             logging.info(f"Inserted {len(occurrences_df)} occurrences for H3 index {h3_index} into database.")
         else:
             logging.info(f"Maximum resolution hit at {h3_index}, downloading csv as an alternative...")
-            occ.download(format='SIMPLE_CSV', user='oerdevops', pwd='oceanexploration', geometry=polygeo.wkt, limit=100000, depth='200,12000', fields=[
-                'latitude', 'longitude', 'depth', 'taxonKey', 'scientificName', 'kingdomKey', 'phylumKey',
-                'classKey', 'orderKey', 'familyKey', 'genusKey', 'basisOfRecord'])
+            # Define your query parameters
+            query = {
+                'geometry': polygon_wkt,
+                'limit': 100000,
+                'depth': '200,12000'  # Specify depth range correctly (check API documentation)
+            }
+            occ.download(format='SIMPLE_CSV', user='oerdevops', pwd='oceanexploration',query)
 
 
 
