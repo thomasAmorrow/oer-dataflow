@@ -96,13 +96,13 @@ def fetch_and_save_occurrences(h3_index, postgres_conn_id='oceexp-db'):
     # Convert occurrences to DataFrame
     occurrences_df = pd.DataFrame(occurrences)
     if occurrences_df.empty:
-        logging.warning(f"No occurrences found for H3 index {h3_index}")
+        logging.info(f"No occurrences found for H3 index {h3_index}")
         return
 
     # Insert occurrences into PostgreSQL
     if len(occurrences_df)==300:
         child_hexes=h3.cell_to_children(h3_index)
-        logging.info(f"Maximum records hit in hex {h3_index}, going deeper...")
+        logging.info(f"Maximum records hit in H3 hex {h3_index}, going deeper to resolution {h3.get_resolution(h3_index)+1}")
         for h3_child in child_hexes:
            fetch_and_save_occurrences(h3_child)
     else:
