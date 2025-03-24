@@ -1,11 +1,14 @@
 import matplotlib.pyplot as plt
 import geopandas as gpd
 import contextily as ctx
-from shapely.geometry import Polygon, shape
+import shapely
+from shapely.geometry import Polygon, shape, LineString
 from shapely.wkt import loads, dumps
 from pygbif import occurrences as occ
 import h3
 import pandas as pd
+from shapely.ops import split
+import antimeridian
 
 # Function to check if a polygon's coordinates are counter-clockwise
 def is_counter_clockwise(polygon_wkt):
@@ -20,7 +23,7 @@ def rearrange_to_counter_clockwise(polygon_wkt):
     return dumps(polygon)
 
 # gimme a cell near Hawaii
-cells = ['85f3ad87fffffff']
+cells = ['815d7ffffffffff']
 
 # gimme the polys
 polygon = h3.cells_to_geo(cells, tight=True)
@@ -34,15 +37,26 @@ polygeo = shape(polygon)
 print("Is the polygon counter-clockwise?", polygeo.exterior.is_ccw)
 
 # If it's not counter-clockwise, rearrange it
-if not polygeo.exterior.is_ccw:
-    print("Rearranging polygon to counter-clockwise...")
-    polygon_wkt = dumps(polygeo)
-    rearranged_wkt = rearrange_to_counter_clockwise(polygon_wkt)
-    polygeo = shape(loads(rearranged_wkt))
+#if not polygeo.exterior.is_ccw:
+#    print("Rearranging polygon to counter-clockwise...")
+#    polygon_wkt = dumps(polygeo)
+#    rearranged_wkt = rearrange_to_counter_clockwise(polygon_wkt)
+#    polygeo = shape(loads(rearranged_wkt))
+
+def crossing_antimeridian(hexagon):
+
+    minx, miny, maxx, maxy = hexagon.bounds
+    if abs(minx-maxx) > 180:
+        print('Hexagon crosses antimeridian, fixing...')
+        hexagon = antimeridian.fix_polygon(hexagon)
+
+    return hexagon
+    
+polygeo = crossing_antimeridian(polygeo)
 
 # Search for critters (occurrences) within the polygon
 critters = occ.search(geometry=polygeo.wkt, limit=20000, depth="200,10000", fields=['latitude','longitude','depth','taxonKey','scientificName', 'kingdomKey', 'phylumKey', 'classKey', 'orderKey', 'familyKey', 'genusKey', 'basisOfRecord'])
-print("Critters found:", critters)
+#print("Critters found:", critters)
 
 # Prepare a list to store occurrences
 occurrences = []

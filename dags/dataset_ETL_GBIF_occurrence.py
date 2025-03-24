@@ -3,6 +3,7 @@ import geopandas as gpd
 import pandas as pd
 import h3
 from shapely.geometry import shape, Polygon
+import antimeridian
 from shapely.wkt import loads, dumps
 from pygbif import occurrences as occ
 from airflow import DAG
@@ -24,6 +25,13 @@ def rearrange_to_counter_clockwise(polygon_wkt):
         polygon = Polygon(list(polygon.exterior.coords)[::-1])
     return dumps(polygon)
 
+def crossing_antimeridian(hexagon):
+    minx, miny, maxx, maxy = hexagon.bounds
+    if abs(minx-maxx) > 180:
+        print('Hexagon crosses antimeridian, fixing...')
+        hexagon = antimeridian.fix_polygon(hexagon)
+    return hexagon
+
 def fetch_and_save_occurrences(h3_index, postgres_conn_id='oceexp-db'):
     # Connect to PostgreSQL
     pg_hook = PostgresHook(postgres_conn_id)
@@ -36,15 +44,15 @@ def fetch_and_save_occurrences(h3_index, postgres_conn_id='oceexp-db'):
     polygon = h3.cells_to_geo([h3_index], tight=True)
     polygeo = shape(polygon)
 
+    # If the polygon crosses the antimeridian, split it
+    polygeo = crossing_antimeridian(polygeo)
+
     # If the polygon is not counter-clockwise, rearrange it
     #if not polygeo.exterior.is_ccw:
     #    logging.info(f"Rearranging polygon for H3 index {h3_index} to counter-clockwise")
     #    polygon_wkt = dumps(polygeo)
     #    rearranged_wkt = rearrange_to_counter_clockwise(polygon_wkt)
     #    polygeo = shape(loads(rearranged_wkt))
-
-    # If the polygon crosses the antimeridian, split it!
-    # create function here
 
     # Search for occurrences in the polygon
     critters = occ.search(geometry=polygeo.wkt, limit=10000, depth='200,12000', fields=[
