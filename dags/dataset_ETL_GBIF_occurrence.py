@@ -118,7 +118,7 @@ def fetch_and_save_occurrences(h3_index, postgres_conn_id='oceexp-db'):
                         row['kingdomKey'], row['phylumKey'], row['classKey'], row['orderKey'], row['familyKey'],
                         row['genusKey'], row['basisofrecord']))
                 conn.commit()
-                logging.info(f"Inserted {len(occurrences_df)} occurrences for H3 index {h3_index} into database.")
+            logging.info(f"Inserted {len(occurrences_df)} occurrences for H3 index {h3_index} into database.")
 
 
 def fetch_h3_indices_and_create_table(postgres_conn_id='oceexp-db'):
