@@ -119,7 +119,7 @@ def fetch_h3_indices_and_create_table(postgres_conn_id='oceexp-db'):
     cursor = conn.cursor()
 
     # Fetch all hexagon H3 indices
-    cursor.execute("SELECT DISTINCT hex_05 FROM h3_oceans") # it work let's try em all!
+    cursor.execute("SELECT DISTINCT hex_03 FROM h3_oceans") # lower resolution due to failed API calls
     indices = cursor.fetchall()
 
     # Create the results table if it doesn't exist
@@ -140,7 +140,7 @@ def fetch_h3_indices_and_create_table(postgres_conn_id='oceexp-db'):
             familyKey TEXT,
             genusKey TEXT,
             basisofrecord TEXT,
-            hex_05 H3INDEX
+            hex_03 H3INDEX
         );
     """)
     conn.commit()
