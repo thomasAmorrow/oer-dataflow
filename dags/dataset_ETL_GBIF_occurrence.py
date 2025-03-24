@@ -41,6 +41,7 @@ def fetch_and_save_occurrences(h3_index, postgres_conn_id='oceexp-db'):
 
     # If the polygon crosses the antimeridian, split it
     polygeo = crossing_antimeridian(polygeo)
+    
 
     # If the polygon is not counter-clockwise, rearrange it
     #if not polygeo.exterior.is_ccw:
@@ -120,8 +121,9 @@ def fetch_and_save_occurrences(h3_index, postgres_conn_id='oceexp-db'):
         else:
             logging.info(f"Maximum resolution hit at {h3_index}, downloading csv as an alternative...")
             # Define your query parameters
+            polygon_wkt = dumps(polygeo)
             query = {
-                'geometry': polygon.wkt,
+                'geometry': polygon_wkt,
                 'limit': 100000,
                 'depth': '200,12000'  # Specify depth range correctly (check API documentation)
             }
