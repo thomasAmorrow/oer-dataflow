@@ -33,11 +33,6 @@ def crossing_antimeridian(hexagon):
     return hexagon
 
 def fetch_and_save_occurrences(h3_index, postgres_conn_id='oceexp-db'):
-    # Connect to PostgreSQL
-    pg_hook = PostgresHook(postgres_conn_id)
-    conn = pg_hook.get_conn()
-    cursor = conn.cursor()
-
     logging.info(f"Querying index {h3_index} ...")
 
     # Get polygon geometry
@@ -108,6 +103,10 @@ def fetch_and_save_occurrences(h3_index, postgres_conn_id='oceexp-db'):
                 logging.info(f"Accessing child {h3_child}...")
                 fetch_and_save_occurrences(h3_child)
         else:
+            # Connect to PostgreSQL
+            pg_hook = PostgresHook(postgres_conn_id)
+            conn = pg_hook.get_conn()
+            cursor = conn.cursor()
             for _, row in occurrences_df.iterrows():
                 cursor.execute("""
                     INSERT INTO gbif_occurrences (latitude, longitude, depth, taxonkey, scientificname, kingdomKey,
