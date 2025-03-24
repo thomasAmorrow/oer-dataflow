@@ -104,6 +104,8 @@ def fetch_and_save_occurrences(h3_index, postgres_conn_id='oceexp-db'):
             child_hexes=h3.cell_to_children(h3_index)
             logging.info(f"Maximum records hit in H3 hex {h3_index}, going deeper to resolution {h3.get_resolution(h3_index)+1}")
             for h3_child in child_hexes:
+                occurrences = []
+                occurrences_df = pd.DataFrame(occurrences)
                 fetch_and_save_occurrences(h3_child)
         else:
             for _, row in occurrences_df.iterrows():
