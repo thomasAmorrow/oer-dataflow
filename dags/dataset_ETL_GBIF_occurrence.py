@@ -121,7 +121,7 @@ def fetch_and_save_occurrences(h3_index, postgres_conn_id='oceexp-db'):
             logging.info(f"Maximum resolution hit at {h3_index}, downloading csv as an alternative...")
             # Define your query parameters
             query = {
-                'geometry': polygon_wkt,
+                'geometry': polygon.wkt,
                 'limit': 100000,
                 'depth': '200,12000'  # Specify depth range correctly (check API documentation)
             }
