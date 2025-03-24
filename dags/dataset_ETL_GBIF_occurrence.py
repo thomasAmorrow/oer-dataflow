@@ -90,7 +90,6 @@ def fetch_and_save_occurrences(h3_index, postgres_conn_id='oceexp-db'):
                 'familyKey': family,
                 'genusKey': genus,
                 'basisofrecord': basisofrecord,
-                'h3_index_02': h3_index  # Add the h3 index to the occurrences
             })
 
     # Convert occurrences to DataFrame
@@ -101,11 +100,14 @@ def fetch_and_save_occurrences(h3_index, postgres_conn_id='oceexp-db'):
     else:
         # Insert occurrences into PostgreSQL
         if len(occurrences_df)==300:
+            critters = []
+            occurrences = []
+            occurrences_df = pd.DataFrame(occurrences)
             child_hexes=h3.cell_to_children(h3_index)
+            print(child_hexes)
             logging.info(f"Maximum records hit in H3 hex {h3_index}, going deeper to resolution {h3.get_resolution(h3_index)+1}")
             for h3_child in child_hexes:
-                occurrences = []
-                occurrences_df = pd.DataFrame(occurrences)
+                logging.info(f"Accessing child {h3_child}...")
                 fetch_and_save_occurrences(h3_child)
         else:
             for _, row in occurrences_df.iterrows():
