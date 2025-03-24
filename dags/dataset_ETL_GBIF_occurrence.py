@@ -98,24 +98,24 @@ def fetch_and_save_occurrences(h3_index, postgres_conn_id='oceexp-db'):
     if occurrences_df.empty:
         logging.info(f"No occurrences found for H3 index {h3_index}")
         return
-
-    # Insert occurrences into PostgreSQL
-    if len(occurrences_df)==300:
-        child_hexes=h3.cell_to_children(h3_index)
-        logging.info(f"Maximum records hit in H3 hex {h3_index}, going deeper to resolution {h3.get_resolution(h3_index)+1}")
-        for h3_child in child_hexes:
-           fetch_and_save_occurrences(h3_child)
     else:
-        for _, row in occurrences_df.iterrows():
-            cursor.execute("""
-                INSERT INTO gbif_occurrences (latitude, longitude, depth, taxonkey, scientificname, kingdomKey,
-                phylumKey, classKey, orderKey, familyKey, genusKey, basisofrecord)
-                VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
-                """, (row['latitude'], row['longitude'], row['depth'], row['taxonkey'], row['scientificname'],
-                    row['kingdomKey'], row['phylumKey'], row['classKey'], row['orderKey'], row['familyKey'],
-                    row['genusKey'], row['basisofrecord']))
-            conn.commit()
-            logging.info(f"Inserted {len(occurrences_df)} occurrences for H3 index {h3_index} into database.")
+        # Insert occurrences into PostgreSQL
+        if len(occurrences_df)==300:
+            child_hexes=h3.cell_to_children(h3_index)
+            logging.info(f"Maximum records hit in H3 hex {h3_index}, going deeper to resolution {h3.get_resolution(h3_index)+1}")
+            for h3_child in child_hexes:
+                fetch_and_save_occurrences(h3_child)
+        else:
+            for _, row in occurrences_df.iterrows():
+                cursor.execute("""
+                    INSERT INTO gbif_occurrences (latitude, longitude, depth, taxonkey, scientificname, kingdomKey,
+                    phylumKey, classKey, orderKey, familyKey, genusKey, basisofrecord)
+                    VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+                    """, (row['latitude'], row['longitude'], row['depth'], row['taxonkey'], row['scientificname'],
+                        row['kingdomKey'], row['phylumKey'], row['classKey'], row['orderKey'], row['familyKey'],
+                        row['genusKey'], row['basisofrecord']))
+                conn.commit()
+                logging.info(f"Inserted {len(occurrences_df)} occurrences for H3 index {h3_index} into database.")
 
 
 def fetch_h3_indices_and_create_table(postgres_conn_id='oceexp-db'):
