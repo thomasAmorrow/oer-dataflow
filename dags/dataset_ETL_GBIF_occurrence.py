@@ -155,6 +155,13 @@ def fetch_h3_indices_and_create_table(postgres_conn_id='oceexp-db'):
     conn = pg_hook.get_conn()
     cursor = conn.cursor()
 
+    file_path = "dense_hexagons.txt"
+    if os.path.exists(file_path):
+        os.remove(file_path)
+        print(f"File '{file_path}' removed successfully.")
+    else:
+        print(f"File '{file_path}' does not exist.")
+
     # Fetch all hexagon H3 indices
     cursor.execute("SELECT DISTINCT hex_02 FROM h3_oceans") # lower resolution due to failed API calls
     indices = cursor.fetchall()
