@@ -24,14 +24,18 @@ def rearrange_to_counter_clockwise(polygon_wkt):
 
 # gimme a cell near Hawaii
 cells = ['815d7ffffffffff']
+cells2 = ['835da5fffffffff']
 
 # gimme the polys
 polygon = h3.cells_to_geo(cells, tight=True)
+polygon2 = h3.cells_to_geo(cells2, tight=True)
+
 
 # Print polygon geometry
 print("Polygon geometry:", polygon)
 
 polygeo = shape(polygon)
+polygeo2 = shape(polygon2)
 
 # Check if the polygon is counter-clockwise
 print("Is the polygon counter-clockwise?", polygeo.exterior.is_ccw)
@@ -56,6 +60,24 @@ polygeo = crossing_antimeridian(polygeo)
 
 # Search for critters (occurrences) within the polygon
 critters = occ.search(geometry=polygeo.wkt, limit=20000, depth="200,10000", fields=['latitude','longitude','depth','taxonKey','scientificName', 'kingdomKey', 'phylumKey', 'classKey', 'orderKey', 'familyKey', 'genusKey', 'basisOfRecord'])
+minx, miny, maxx, maxy = polygeo.bounds
+print(f"Coords are {minx}, {miny}, {maxx}, {maxy}")
+#query = (['depth > 200', 'decimalLatitude > + miny', 'decimalLatitude < {maxy}', 'decimalLongitude > {minx}', 'decimalLongitude < {maxx}'], pred_type ='and')
+#print(query)
+polygon_wkt = dumps(polygeo)
+polygon2_wkt = dumps(polygeo2)
+#query = 'geometry = {polygon_wkt}', 'limit = 100000', 'depth = 200,12000'  # Specify depth range correctly (check API documentation)
+occdatakey, occdatastring=occ.download(
+    format='SIMPLE_CSV',
+    user="oerdevops",
+    pwd="oceanexploration",
+    email="oar.oer.devops@noaa.gov",
+    queries= ['depth > 200', f'geometry = {polygon_wkt}', f'geometry = {polygon2_wkt}']
+    #['depth > 200', f'decimalLatitude > {miny}', f'decimalLatitude < {maxy}', f'decimalLongitude > {minx}', f'decimalLongitude < {maxx}'], pred_type ='and'
+)
+print(occdatakey)
+occ.download_get(key=occdatakey,path=str(cells[0]))
+
 #print("Critters found:", critters)
 
 # Prepare a list to store occurrences
@@ -96,33 +118,33 @@ for critter in critters['results']:
         })
 
 # Convert occurrences list to DataFrame and print only those with depth
-occurrences_df = pd.DataFrame(occurrences)
-print(occurrences_df)
-occurrences_df.to_csv('occurrences.csv', index=False)
+#occurrences_df = pd.DataFrame(occurrences)
+#print(occurrences_df)
+#occurrences_df.to_csv('occurrences.csv', index=False)
 
 # Plot the polygon on a map using GeoPandas and Matplotlib
-gdf = gpd.GeoDataFrame([polygeo], columns=['geometry'])
-gdf.set_crs("EPSG:4326", allow_override=True, inplace=True)
+#gdf = gpd.GeoDataFrame([polygeo], columns=['geometry'])
+#gdf.set_crs("EPSG:4326", allow_override=True, inplace=True)
 
 # Create a plot
-fig, ax = plt.subplots(figsize=(8, 8))
+#fig, ax = plt.subplots(figsize=(8, 8))
 
 # Plot the polygon
-gdf.plot(ax=ax, color='lightblue', edgecolor='black', alpha=0.7)
+#gdf.plot(ax=ax, color='lightblue', edgecolor='black', alpha=0.7)
 
 # Reproject to web mercator (EPSG:3857) for compatibility with contextily basemaps
-gdf = gdf.to_crs(epsg=3857)
+#gdf = gdf.to_crs(epsg=3857)
 
 # Add OpenStreetMap basemap
-ctx.add_basemap(ax, crs=gdf.crs)
+#ctx.add_basemap(ax, crs=gdf.crs)
 
 # Plot the critter locations as red dots
-for critter in occurrences:
-    ax.scatter(critter['longitude'], critter['latitude'], color='red', s=100, label='Critter Location')
+#for critter in occurrences:
+#    ax.scatter(critter['longitude'], critter['latitude'], color='red', s=100, label='Critter Location')
 
 # Set plot title
-ax.set_title("Polygon Location Map with Critter", fontsize=15)
+#ax.set_title("Polygon Location Map with Critter", fontsize=15)
 
 # Show the plot
 #plt.legend()
-plt.show()
+#plt.show()

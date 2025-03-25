@@ -55,7 +55,7 @@ def fetch_and_save_occurrences(h3_index, postgres_conn_id='oceexp-db'):
     occurrences_df = pd.DataFrame(occurrences)
 
     # Search for occurrences in the polygon
-    critters = occ.search(geometry=polygeo.wkt, limit=10000, depth='200,12000', fields=[
+    critters = occ.search(geometry=polygeo.wkt, limit=300, depth='200,12000', fields=[
         'latitude', 'longitude', 'depth', 'taxonKey', 'scientificName', 'kingdomKey', 'phylumKey',
         'classKey', 'orderKey', 'familyKey', 'genusKey', 'basisOfRecord'])
 
@@ -120,12 +120,8 @@ def fetch_and_save_occurrences(h3_index, postgres_conn_id='oceexp-db'):
             logging.info(f"Inserted {len(occurrences_df)} occurrences for H3 index {h3_index} into database.")
         else:
             logging.info(f"Maximum resolution hit at {h3_index}, downloading csv as an alternative...")
-            # Define your query parameters
-            polygon_wkt = dumps(polygeo)
-            query = ['geometry = {polygon_wkt}', 'limit = 100000', 'depth = 200,12000']  # Specify depth range correctly (check API documentation)
-
-            occ.download(format='SIMPLE_CSV', user='oerdevops', pwd='oceanexploration', query)
-
+            with open("dense_hexagons.txt", "a") as file:
+                file.write(f"{h3_index}\n")
 
 
 def fetch_h3_indices_and_create_table(postgres_conn_id='oceexp-db'):
@@ -138,7 +134,7 @@ def fetch_h3_indices_and_create_table(postgres_conn_id='oceexp-db'):
     cursor.execute("SELECT DISTINCT hex_02 FROM h3_oceans") # lower resolution due to failed API calls
     indices = cursor.fetchall()
 
-    # Create the results table if it doesn't exist
+    # Create the results table if it doesn't exist. Remove drop eventually, since we will want to update only.
     cursor.execute("""
         DROP TABLE IF EXISTS gbif_occurrences;          
 
@@ -208,5 +204,12 @@ fetch_occurrences_task = PythonOperator(
     dag=dag
 )
 
+#fetch_dense_hexagons_task = PythonOperator(
+    #task_id='fetch_dense_hexagons',
+    #python_callable=fetch_occurrences_for_each_hexagon,
+    #provide_context=True,
+    #dag=dag
+#)
+
 # Define task dependencies
-fetch_indices_task >> fetch_occurrences_task
+fetch_indices_task >> fetch_occurrences_task #>> fetch_dense_hexagons_task
