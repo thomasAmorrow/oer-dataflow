@@ -1,4 +1,6 @@
 import logging
+import time
+import requests
 import geopandas as gpd
 import pandas as pd
 import h3
@@ -10,7 +12,6 @@ from airflow import DAG
 from airflow.providers.postgres.hooks.postgres import PostgresHook
 from airflow.operators.python_operator import PythonOperator
 from datetime import datetime, timedelta
-import requests
 
 
 
@@ -33,7 +34,7 @@ def crossing_antimeridian(hexagon):
         hexagon = antimeridian.fix_polygon(hexagon)
     return hexagon
 
-def safe_occurrence_search(geometry, limit=300, depth='200,12000', fields=None):
+def safe_occurrence_search(geometry, limit=300, depth='200,12000', fields=None, max_retries=6):
     if fields is None:
         fields = [
             'latitude', 'longitude', 'depth', 'taxonKey', 'scientificName', 
@@ -41,23 +42,30 @@ def safe_occurrence_search(geometry, limit=300, depth='200,12000', fields=None):
             'genusKey', 'basisOfRecord'
         ]
     
-    try:
-        critters = occ.search(
-            geometry=geometry,
-            limit=limit,
-            depth=depth,
-            fields=fields
-        )
-        return critters
-    except requests.exceptions.HTTPError as e:
-        # Check if the error is a 429 - Too Many Requests
-        if e.response.status_code == 429:
-            logging.warning("Received 429: Too many requests. Waiting before retrying.")
-            # Implement a delay (e.g., 30 seconds)
-            time.sleep(30)
-            return safe_occurrence_search(geometry, limit, depth, fields)  # Retry the request
-        else:
-            raise e  # Re-raise the error if it's not a 429
+    retries = 0
+    backoff_time = 1  # Starting with 1 second delay
+    
+    while retries < max_retries:
+        try:
+            critters = occ.search(
+                geometry=geometry,
+                limit=limit,
+                depth=depth,
+                fields=fields
+            )
+            return critters
+        except requests.exceptions.HTTPError as e:
+            # Check if the error is a 429 - Too Many Requests
+            if e.response.status_code == 429:
+                retries += 1
+                delay = min(2 ** retries, 64)  # Exponential backoff with a maximum of 64 seconds
+                logging.warning(f"Received 429: Too many requests. Waiting {delay} seconds before retrying.")
+                time.sleep(delay)  # Wait before retrying
+            else:
+                raise e  # Re-raise the error if it's not a 429
+
+    logging.error(f"Exceeded maximum retries for 429 errors. Giving up.")
+    return None  # Return None if max retries are reached
 
 def fetch_and_save_occurrences(h3_index, postgres_conn_id='oceexp-db'):
     logging.info(f"Querying index {h3_index} ...")
