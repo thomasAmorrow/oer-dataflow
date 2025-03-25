@@ -10,6 +10,7 @@ from airflow import DAG
 from airflow.providers.postgres.hooks.postgres import PostgresHook
 from airflow.operators.python_operator import PythonOperator
 from datetime import datetime, timedelta
+import requests
 
 
 
@@ -32,6 +33,32 @@ def crossing_antimeridian(hexagon):
         hexagon = antimeridian.fix_polygon(hexagon)
     return hexagon
 
+def safe_occurrence_search(geometry, limit=300, depth='200,12000', fields=None):
+    if fields is None:
+        fields = [
+            'latitude', 'longitude', 'depth', 'taxonKey', 'scientificName', 
+            'kingdomKey', 'phylumKey', 'classKey', 'orderKey', 'familyKey', 
+            'genusKey', 'basisOfRecord'
+        ]
+    
+    try:
+        critters = occ.search(
+            geometry=geometry,
+            limit=limit,
+            depth=depth,
+            fields=fields
+        )
+        return critters
+    except requests.exceptions.HTTPError as e:
+        # Check if the error is a 429 - Too Many Requests
+        if e.response.status_code == 429:
+            logging.warning("Received 429: Too many requests. Waiting before retrying.")
+            # Implement a delay (e.g., 30 seconds)
+            time.sleep(30)
+            return safe_occurrence_search(geometry, limit, depth, fields)  # Retry the request
+        else:
+            raise e  # Re-raise the error if it's not a 429
+
 def fetch_and_save_occurrences(h3_index, postgres_conn_id='oceexp-db'):
     logging.info(f"Querying index {h3_index} ...")
 
@@ -42,22 +69,12 @@ def fetch_and_save_occurrences(h3_index, postgres_conn_id='oceexp-db'):
     # If the polygon crosses the antimeridian, split it
     polygeo = crossing_antimeridian(polygeo)
     
-
-    # If the polygon is not counter-clockwise, rearrange it
-    #if not polygeo.exterior.is_ccw:
-    #    logging.info(f"Rearranging polygon for H3 index {h3_index} to counter-clockwise")
-    #    polygon_wkt = dumps(polygeo)
-    #    rearranged_wkt = rearrange_to_counter_clockwise(polygon_wkt)
-    #    polygeo = shape(loads(rearranged_wkt))
-
     critters = []
     occurrences = []
     occurrences_df = pd.DataFrame(occurrences)
 
-    # Search for occurrences in the polygon
-    critters = occ.search(geometry=polygeo.wkt, limit=300, depth='200,12000', fields=[
-        'latitude', 'longitude', 'depth', 'taxonKey', 'scientificName', 'kingdomKey', 'phylumKey',
-        'classKey', 'orderKey', 'familyKey', 'genusKey', 'basisOfRecord'])
+    # Search for occurrences in the polygon using the safe function
+    critters = safe_occurrence_search(polygeo.wkt)
 
     # Extract data for each occurrence
     for critter in critters['results']:
@@ -97,13 +114,13 @@ def fetch_and_save_occurrences(h3_index, postgres_conn_id='oceexp-db'):
         return
     else:
         # Insert occurrences into PostgreSQL
-        if len(occurrences_df)==300 and h3.get_resolution(h3_index)<6:
-            child_hexes=h3.cell_to_children(h3_index)
-            logging.info(f"Maximum records hit in H3 hex {h3_index}, going deeper to resolution {h3.get_resolution(h3_index)+1},\n Child hexagons are {child_hexes} ")
+        if len(occurrences_df) == 300 and h3.get_resolution(h3_index) < 6:
+            child_hexes = h3.cell_to_children(h3_index)
+            logging.info(f"Maximum records hit in H3 hex {h3_index}, going deeper to resolution {h3.get_resolution(h3_index) + 1},\n Child hexagons are {child_hexes} ")
             for h3_child in child_hexes:
                 logging.info(f"Accessing child {h3_child}...")
                 fetch_and_save_occurrences(h3_child)
-        elif len(occurrences_df)<300 and h3.get_resolution(h3_index)<6:
+        elif len(occurrences_df) < 300 and h3.get_resolution(h3_index) < 6:
             # Connect to PostgreSQL
             pg_hook = PostgresHook(postgres_conn_id)
             conn = pg_hook.get_conn()
