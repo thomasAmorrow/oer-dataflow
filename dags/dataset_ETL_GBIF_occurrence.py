@@ -13,6 +13,7 @@ from airflow.providers.postgres.hooks.postgres import PostgresHook
 from airflow.operators.python_operator import PythonOperator
 from datetime import datetime, timedelta
 import os
+from requests.exceptions import HTTPError, ChunkedEncodingError
 
 
 
@@ -55,15 +56,15 @@ def safe_occurrence_search(geometry, h3_index, limit=300, depth='200,12000', fie
                 fields=fields
             )
             return critters
-        except requests.exceptions.HTTPError as e:
-                retries += 1
-                delay = min(2 ** retries, 64)  # Exponential backoff with a maximum of 64 seconds
-                logging.warning(f"Received error: Too many requests. Waiting {delay} seconds before retrying.")
-                time.sleep(delay)  # Wait before retrying
-
+        except (HTTPError, ChunkedEncodingError) as e:
+            retries += 1
+            delay = min(2 ** retries, 64)  # Exponential backoff with a maximum of 64 seconds
+            logging.warning(f"Received error: {e}. Waiting {delay} seconds before retrying.")
+            time.sleep(delay)  # Wait before retrying
+            
     logging.error(f"Exceeded maximum retries for server errors. Giving up.")
     with open("dense_hexagons.txt", "a") as file:
-        file.write(f"{h3_index}, retry\n")# kick out hexagon to the download script
+        file.write(f"{h3_index}, retry\n")  # Log hexagon for retry in the download script
     return None  # Return None if max retries are reached
 
 def fetch_and_save_occurrences(h3_index, postgres_conn_id='oceexp-db'):
