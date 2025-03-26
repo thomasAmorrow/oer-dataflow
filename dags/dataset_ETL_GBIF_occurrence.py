@@ -35,7 +35,7 @@ def crossing_antimeridian(hexagon):
         hexagon = antimeridian.fix_polygon(hexagon)
     return hexagon
 
-def safe_occurrence_search(geometry, limit=300, depth='200,12000', fields=None, max_retries=6):
+def safe_occurrence_search(geometry, h3_index, limit=300, depth='200,12000', fields=None, max_retries=6):
     if fields is None:
         fields = [
             'latitude', 'longitude', 'depth', 'taxonKey', 'scientificName', 
@@ -56,16 +56,14 @@ def safe_occurrence_search(geometry, limit=300, depth='200,12000', fields=None, 
             )
             return critters
         except requests.exceptions.HTTPError as e:
-            # Check if the error is a 429 - Too Many Requests
-            if e.response.status_code == 429:
                 retries += 1
                 delay = min(2 ** retries, 64)  # Exponential backoff with a maximum of 64 seconds
-                logging.warning(f"Received 429: Too many requests. Waiting {delay} seconds before retrying.")
+                logging.warning(f"Received error: Too many requests. Waiting {delay} seconds before retrying.")
                 time.sleep(delay)  # Wait before retrying
-            else:
-                raise e  # Re-raise the error if it's not a 429
 
-    logging.error(f"Exceeded maximum retries for 429 errors. Giving up.")
+    logging.error(f"Exceeded maximum retries for server errors. Giving up.")
+    with open("dense_hexagons.txt", "a") as file:
+        file.write(f"{h3_index}, retry\n")# kick out hexagon to the download script
     return None  # Return None if max retries are reached
 
 def fetch_and_save_occurrences(h3_index, postgres_conn_id='oceexp-db'):
@@ -83,7 +81,7 @@ def fetch_and_save_occurrences(h3_index, postgres_conn_id='oceexp-db'):
     occurrences_df = pd.DataFrame(occurrences)
 
     # Search for occurrences in the polygon using the safe function
-    critters = safe_occurrence_search(polygeo.wkt)
+    critters = safe_occurrence_search(polygeo.wkt, h3_index)
 
     # Extract data for each occurrence
     for critter in critters['results']:
@@ -123,13 +121,13 @@ def fetch_and_save_occurrences(h3_index, postgres_conn_id='oceexp-db'):
         return
     else:
         # Insert occurrences into PostgreSQL
-        if len(occurrences_df) == 300 and h3.get_resolution(h3_index) < 6:
+        if len(occurrences_df) == 300 and h3.get_resolution(h3_index) < 4:
             child_hexes = h3.cell_to_children(h3_index)
             logging.info(f"Maximum records hit in H3 hex {h3_index}, going deeper to resolution {h3.get_resolution(h3_index) + 1},\n Child hexagons are {child_hexes} ")
             for h3_child in child_hexes:
                 logging.info(f"Accessing child {h3_child}...")
                 fetch_and_save_occurrences(h3_child)
-        elif len(occurrences_df) < 300 and h3.get_resolution(h3_index) < 6:
+        elif len(occurrences_df) < 300 and h3.get_resolution(h3_index) < 4:
             # Connect to PostgreSQL
             pg_hook = PostgresHook(postgres_conn_id)
             conn = pg_hook.get_conn()
@@ -147,7 +145,7 @@ def fetch_and_save_occurrences(h3_index, postgres_conn_id='oceexp-db'):
         else:
             logging.info(f"Maximum resolution hit at {h3_index}, downloading csv as an alternative...")
             with open("dense_hexagons.txt", "a") as file:
-                file.write(f"{h3_index}\n")
+                file.write(f"{h3_index}, dense\n")
 
 
 def fetch_h3_indices_and_create_table(postgres_conn_id='oceexp-db'):
