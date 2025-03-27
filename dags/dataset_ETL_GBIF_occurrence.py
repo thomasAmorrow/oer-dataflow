@@ -17,8 +17,8 @@ def fetch_GBIF_table(**kwargs):
         user="oerdevops",
         pwd="oceanexploration",
         email="oar.oer.devops@noaa.gov",
-        #queries=['depth > 200', 'hasGeospatialIssue = FALSE', 'hasCoordinate = TRUE']
-        queries=['depth > 200', 'basisOfRecord = MACHINE_OBSERVATION', 'hasGeospatialIssue = FALSE', 'hasCoordinate = TRUE']
+        queries=['depth > 200', 'hasGeospatialIssue = FALSE', 'hasCoordinate = TRUE']
+        #queries=['depth > 200', 'basisOfRecord = MACHINE_OBSERVATION', 'hasGeospatialIssue = FALSE', 'hasCoordinate = TRUE']
     )
     logging.info("Sleep briefly for GBIF compilation to complete...")
     time.sleep(8 * 60)
@@ -79,7 +79,7 @@ def fetch_GBIF_table(**kwargs):
 
         os.remove(f"/mnt/data/{occdatakey}.csv")
         os.remove(f"/mnt/data/{occdatakey}.zip")
-    
+
 
 def load_GBIF_table_csv():
     sql_statements = """
@@ -89,7 +89,7 @@ def load_GBIF_table_csv():
         DROP TABLE IF EXISTS gbif_occurrences;
         
         CREATE TABLE gbif_occurrences (
-            gbifid TEXT,
+            gbifid PRIMARY KEY,
             datasetkey TEXT,
             occurrenceid TEXT,
             kingdom TEXT,
