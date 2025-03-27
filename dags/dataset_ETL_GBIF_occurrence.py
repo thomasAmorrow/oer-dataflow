@@ -20,7 +20,9 @@ def fetch_GBIF_table(**kwargs):
         #queries=['depth > 200', 'hasGeospatialIssue = FALSE', 'hasCoordinate = TRUE']
         queries=['depth > 200', 'basisOfRecord = MACHINE_OBSERVATION', 'hasGeospatialIssue = FALSE', 'hasCoordinate = TRUE']
     )
+    logging.info("Sleep briefly for GBIF compilation to complete...")
     time.sleep(8 * 60)
+    logging.info("*yawn... I'm awake, trying to download...")
     retries = 0
     if os.path.exists(f"/mnt/data/{occdatakey}.zip"):
         logging.info("Download successful!")
