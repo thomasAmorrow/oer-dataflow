@@ -22,9 +22,9 @@ def fetch_GBIF_table(**kwargs):
     )
     time.sleep(8 * 60)
     retries = 0
-    if os.path.exists("/mnt/data/gbif_occurrences_raw.zip"):
+    if os.path.exists(f"/mnt/data/{occdatakey}.zip"):
         logging.info("Download successful!")
-        with zipfile.ZipFile("/mnt/data/gbif_occurrences_raw.zip", "r") as zip_ref:
+        with zipfile.ZipFile(f"/mnt/data/{occdatakey}", "r") as zip_ref:
             zip_ref.extractall("/mnt/data/")
 
         logging.info(f"Key successfully identified as {occdatakey}")
@@ -56,7 +56,8 @@ def fetch_GBIF_table(**kwargs):
 
     elif retries < 6:
         try:
-            occ.download_get(key=occdatakey, path="/mnt/data/gbif_occurrences_raw")
+            logging.info("Downloading occurrence data...")
+            occ.download_get(key=occdatakey, path="/mnt/data/")
         except Exception as e:
             retries += 1
             delay = 60 * min(2 ** retries, 32)  # Exponential backoff with a maximum of 32 minutes

@@ -272,3 +272,4 @@ volumes:
   postgres-db-volume:
   oceexp-db-volume:
   pgadmin-data:
+  airflow-worker-volume:
