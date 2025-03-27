@@ -148,6 +148,8 @@ services:
     environment:
       <<: *airflow-common-env
       DUMB_INIT_SETSID: "0"
+    volumes:
+      - ./data:/var/lib/postgresql/data
     restart: always
     depends_on:
       <<: *airflow-common-depends-on

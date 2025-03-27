@@ -22,10 +22,10 @@ def fetch_GBIF_table(**kwargs):
     )
     time.sleep(8 * 60)
     retries = 0
-    if os.path.exists("gbif_occurrences_raw.zip"):
+    if os.path.exists("/var/lib/postgresql/data/gbif_occurrences_raw.zip"):
         logging.info("Download successful!")
-        with zipfile.ZipFile("gbif_occurrences_raw.zip", "r") as zip_ref:
-            zip_ref.extractall("gbif_occurrences")
+        with zipfile.ZipFile("/var/lib/postgresql/data/gbif_occurrences_raw.zip", "r") as zip_ref:
+            zip_ref.extractall("/var/lib/postgresql/data/")
         
         # Push the occdatakey to XCom so the next task can retrieve it
         kwargs['ti'].xcom_push(key='occdatakey', value=occdatakey)
@@ -33,7 +33,7 @@ def fetch_GBIF_table(**kwargs):
         return occdatakey
     elif retries < 6:
         try:
-            occ.download_get(key=occdatakey, path="gbif_occurrences_raw")
+            occ.download_get(key=occdatakey, path="/var/lib/postgresql/data/gbif_occurrences_raw")
         except Exception as e:
             retries += 1
             delay = 60 * min(2 ** retries, 32)  # Exponential backoff with a maximum of 32 minutes
