@@ -149,7 +149,7 @@ services:
       <<: *airflow-common-env
       DUMB_INIT_SETSID: "0"
     volumes:
-      - ./data:/var/lib/postgresql/data
+      - ./data:/mnt/data  # Mount the shared volume at /mnt/data in the worker container
     restart: always
     depends_on:
       <<: *airflow-common-depends-on

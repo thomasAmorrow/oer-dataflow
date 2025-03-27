@@ -22,10 +22,10 @@ def fetch_GBIF_table(**kwargs):
     )
     time.sleep(8 * 60)
     retries = 0
-    if os.path.exists("/var/lib/postgresql/data/gbif_occurrences_raw.zip"):
+    if os.path.exists("/mnt/data/gbif_occurrences_raw.zip"):
         logging.info("Download successful!")
-        with zipfile.ZipFile("/var/lib/postgresql/data/gbif_occurrences_raw.zip", "r") as zip_ref:
-            zip_ref.extractall("/var/lib/postgresql/data/")
+        with zipfile.ZipFile("/mnt/data/gbif_occurrences_raw.zip", "r") as zip_ref:
+            zip_ref.extractall("/mnt/data/")
         
         # Push the occdatakey to XCom so the next task can retrieve it
         kwargs['ti'].xcom_push(key='occdatakey', value=occdatakey)
@@ -33,7 +33,7 @@ def fetch_GBIF_table(**kwargs):
         return occdatakey
     elif retries < 6:
         try:
-            occ.download_get(key=occdatakey, path="/var/lib/postgresql/data/gbif_occurrences_raw")
+            occ.download_get(key=occdatakey, path="/mnt/data/gbif_occurrences_raw")
         except Exception as e:
             retries += 1
             delay = 60 * min(2 ** retries, 32)  # Exponential backoff with a maximum of 32 minutes
@@ -49,8 +49,8 @@ def clean_GBIF(**kwargs):
     logging.info(f"Got key {occkey}")
     
     # Input and output file paths
-    input_file = f"/var/lib/postgresql/data/{occkey}.csv"
-    output_file = 'cleaned_NR50.csv'
+    input_file = f"/mnt/data/{occkey}.csv"
+    output_file = '/mnt/data/cleaned_NR50.csv'
 
     # Check if the file exists before processing
     if not os.path.exists(input_file):
@@ -76,6 +76,9 @@ def clean_GBIF(**kwargs):
 
 def load_GBIF_table_csv():
     sql_statements = """
+        CREATE EXTENSION IF NOT EXISTS h3;
+        CREATE EXTENSION IF NOT EXISTS h3_postgis CASCADE;
+
         DROP TABLE IF EXISTS gbif_occurrences;
         
         CREATE TABLE gbif_occurrences (
