@@ -1,196 +1,213 @@
-import logging
+import os
+import wget
+import zipfile
+import pygbif
 import time
-import requests
-import geopandas as gpd
-import pandas as pd
-import h3
-from shapely.geometry import shape, Polygon
-import antimeridian
-from shapely.wkt import loads, dumps
+import logging
+import csv
 from pygbif import occurrences as occ
 from airflow import DAG
 from airflow.providers.postgres.hooks.postgres import PostgresHook
 from airflow.operators.python_operator import PythonOperator
 from datetime import datetime, timedelta
-import os
-from requests.exceptions import HTTPError, ChunkedEncodingError
 
-
-
-# Function to check if a polygon's coordinates are counter-clockwise
-def is_counter_clockwise(polygon_wkt):
-    polygon = loads(polygon_wkt)
-    return polygon.exterior.is_ccw
-
-# Function to rearrange polygon to counter-clockwise
-def rearrange_to_counter_clockwise(polygon_wkt):
-    polygon = loads(polygon_wkt)
-    if not polygon.exterior.is_ccw:
-        polygon = Polygon(list(polygon.exterior.coords)[::-1])
-    return dumps(polygon)
-
-def crossing_antimeridian(hexagon):
-    minx, miny, maxx, maxy = hexagon.bounds
-    if abs(minx-maxx) > 180:
-        print('Hexagon crosses antimeridian, fixing...')
-        hexagon = antimeridian.fix_polygon(hexagon)
-    return hexagon
-
-def safe_occurrence_search(geometry, h3_index, limit=300, depth='200,12000', fields=None, max_retries=6):
-    if fields is None:
-        fields = [
-            'latitude', 'longitude', 'depth', 'taxonKey', 'scientificName', 
-            'kingdomKey', 'phylumKey', 'classKey', 'orderKey', 'familyKey', 
-            'genusKey', 'basisOfRecord'
-        ]
-    
+def fetch_GBIF_table(**kwargs):
+    occdatakey, occdatastring = occ.download(
+        format='SIMPLE_CSV',
+        user="oerdevops",
+        pwd="oceanexploration",
+        email="oar.oer.devops@noaa.gov",
+        queries=['depth > 200', 'hasGeospatialIssue = FALSE', 'hasCoordinate = TRUE']
+    )
+    time.sleep(10 * 60)
     retries = 0
-    backoff_time = 1  # Starting with 1 second delay
-    
-    while retries < max_retries:
+    if os.path.exists("gbif_occurrences_raw.zip"):
+        logging.info("Download successful!")
+        with zipfile.ZipFile("gbif_occurrences_raw.zip", "r") as zip_ref:
+            zip_ref.extractall("gbif_occurrences")
+        
+        # Push the occdatakey to XCom so the next task can retrieve it
+        kwargs['ti'].xcom_push(key='occdatakey', value=occdatakey)
+        
+        return occdatakey
+    elif retries < 6:
         try:
-            critters = occ.search(
-                geometry=geometry,
-                limit=limit,
-                depth=depth,
-                fields=fields
-            )
-            return critters
-        except (HTTPError, ChunkedEncodingError) as e:
+            occ.download_get(key=occdatakey, path="gbif_occurrences_raw")
+        except Exception as e:
             retries += 1
-            delay = min(2 ** retries, 64)  # Exponential backoff with a maximum of 64 seconds
-            logging.warning(f"Received error: {e}. Waiting {delay} seconds before retrying.")
-            time.sleep(delay)  # Wait before retrying
-            
-    logging.error(f"Exceeded maximum retries for server errors. Giving up.")
-    with open("dense_hexagons.txt", "a") as file:
-        file.write(f"{h3_index}, retry\n")  # Log hexagon for retry in the download script
-    return None  # Return None if max retries are reached
-
-def fetch_and_save_occurrences(h3_index, postgres_conn_id='oceexp-db'):
-    logging.info(f"Querying index {h3_index} ...")
-
-    # Get polygon geometry
-    polygon = h3.cells_to_geo([h3_index], tight=True)
-    polygeo = shape(polygon)
-
-    # If the polygon crosses the antimeridian, split it
-    polygeo = crossing_antimeridian(polygeo)
+            delay = 60 * min(2 ** retries, 32)  # Exponential backoff with a maximum of 32 minutes
+            time.sleep(delay)
+    else:
+        logging.info("Failed download, too many tries")
     
-    critters = []
-    occurrences = []
-    occurrences_df = pd.DataFrame(occurrences)
 
-    # Search for occurrences in the polygon using the safe function
-    critters = safe_occurrence_search(polygeo.wkt, h3_index)
+def clean_GBIF(**kwargs):
+    # Get the occdatakey from XCom
+    ti = kwargs['ti']
+    occkey = ti.xcom_pull(task_ids='fetch_GBIF_query_table', key='occdatakey')
+    
+    # Input and output file paths
+    input_file = "gbif_occurrences/" + occkey + ".csv"
+    output_file = 'cleaned_NR50.csv'
 
-    # Extract data for each occurrence
-    for critter in critters['results']:
-        latitude = critter['decimalLatitude']
-        longitude = critter['decimalLongitude']
-        depth = critter['depth']
-        taxonkey = critter['taxonKey']
-        scientificname = critter['scientificName']
-        kingdom = critter.get('kingdomKey', None)
-        phylum = critter.get('phylumKey', None)
-        class_key = critter.get('classKey', None)
-        order = critter.get('orderKey', None)
-        family = critter.get('familyKey', None)
-        genus = critter.get('genusKey', None)
-        basisofrecord = critter.get('basisOfRecord', None)
+    # Open the input and output files
+    with open(input_file, 'r', newline='', encoding='utf-8') as infile, \
+         open(output_file, 'w', newline='', encoding='utf-8') as outfile:
+        
+        # Create a CSV reader and writer
+        reader = csv.reader(infile, delimiter='\t')
+        writer = csv.writer(outfile, delimiter='\t', quotechar='"', quoting=csv.QUOTE_MINIMAL)
 
-        if depth is not None:
-            occurrences.append({
-                'latitude': latitude,
-                'longitude': longitude,
-                'depth': depth,
-                'taxonkey': taxonkey,
-                'scientificname': scientificname,
-                'kingdomKey': kingdom,
-                'phylumKey': phylum,
-                'classKey': class_key,
-                'orderKey': order,
-                'familyKey': family,
-                'genusKey': genus,
-                'basisofrecord': basisofrecord,
-            })
+        # Process each row
+        for row in reader:
+            # Check if the number of fields is 50
+            if len(row) == 50:
+                # Add quotes to each field and write the row to the output file
+                writer.writerow([f'"{field}"' for field in row])
 
-    # Convert occurrences to DataFrame
-    occurrences_df = pd.DataFrame(occurrences)
-    if occurrences_df.empty:
-        logging.info(f"No occurrences found for H3 index {h3_index}")
-        return
-    else:
-        # Insert occurrences into PostgreSQL
-        if len(occurrences_df) == 300 and h3.get_resolution(h3_index) < 4:
-            child_hexes = h3.cell_to_children(h3_index)
-            logging.info(f"Maximum records hit in H3 hex {h3_index}, going deeper to resolution {h3.get_resolution(h3_index) + 1},\n Child hexagons are {child_hexes} ")
-            for h3_child in child_hexes:
-                logging.info(f"Accessing child {h3_child}...")
-                fetch_and_save_occurrences(h3_child)
-        elif len(occurrences_df) < 300 and h3.get_resolution(h3_index) < 4:
-            # Connect to PostgreSQL
-            pg_hook = PostgresHook(postgres_conn_id)
-            conn = pg_hook.get_conn()
-            cursor = conn.cursor()
-            for _, row in occurrences_df.iterrows():
-                cursor.execute("""
-                    INSERT INTO gbif_occurrences (latitude, longitude, depth, taxonkey, scientificname, kingdomKey,
-                    phylumKey, classKey, orderKey, familyKey, genusKey, basisofrecord)
-                    VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
-                    """, (row['latitude'], row['longitude'], row['depth'], row['taxonkey'], row['scientificname'],
-                        row['kingdomKey'], row['phylumKey'], row['classKey'], row['orderKey'], row['familyKey'],
-                        row['genusKey'], row['basisofrecord']))
-                conn.commit()
-            logging.info(f"Inserted {len(occurrences_df)} occurrences for H3 index {h3_index} into database.")
-        else:
-            logging.info(f"Maximum resolution hit at {h3_index}, downloading csv as an alternative...")
-            with open("dense_hexagons.txt", "a") as file:
-                file.write(f"{h3_index}, dense\n")
-
-
-def fetch_h3_indices_and_create_table(postgres_conn_id='oceexp-db'):
-    # Connect to PostgreSQL and fetch the list of H3 indices
-    pg_hook = PostgresHook(postgres_conn_id)
-    conn = pg_hook.get_conn()
-    cursor = conn.cursor()
-
-    file_path = "dense_hexagons.txt"
-    if os.path.exists(file_path):
-        os.remove(file_path)
-        print(f"File '{file_path}' removed successfully.")
-    else:
-        print(f"File '{file_path}' does not exist.")
-
-    # Fetch all hexagon H3 indices
-    cursor.execute("SELECT DISTINCT hex_02 FROM h3_oceans") # lower resolution due to failed API calls
-    indices = cursor.fetchall()
-
-    # Create the results table if it doesn't exist. Remove drop eventually, since we will want to update only.
-    cursor.execute("""
-        DROP TABLE IF EXISTS gbif_occurrences;          
-
-        CREATE TABLE IF NOT EXISTS gbif_occurrences (
-            id SERIAL PRIMARY KEY,
-            latitude DOUBLE PRECISION,
-            longitude DOUBLE PRECISION,
-            depth DOUBLE PRECISION,
-            taxonkey TEXT,
+def load_GBIF_table_csv():
+    sql_statements = """
+        DROP TABLE IF EXISTS gbif_occurrences;
+        
+        CREATE TABLE gbif_occurrences (
+            gbifid TEXT,
+            datasetkey TEXT,
+            occurrenceid TEXT,
+            kingdom TEXT,
+            phylum TEXT,
+            "class" TEXT,
+            "order" TEXT,
+            family TEXT,
+            genus TEXT,
+            species TEXT,
+            infraspecificepithet TEXT,
+            taxonrank TEXT,
             scientificname TEXT,
-            kingdomKey TEXT,
-            phylumKey TEXT,
-            classKey TEXT,
-            orderKey TEXT,
-            familyKey TEXT,
-            genusKey TEXT,
-            basisofrecord TEXT
+            verbatimscientificname TEXT,
+            verbatimscientificnameauthorsh TEXT,
+            countrycode TEXT,
+            locality TEXT,
+            stateprovince TEXT,
+            occurrencestatus TEXT,
+            individualcount TEXT,
+            publishingorgkey TEXT,
+            decimallatitude TEXT,
+            decimallongitude TEXT,
+            coordinateuncertaintyinmeters TEXT,
+            coordinateprecision TEXT,
+            elevation TEXT,
+            elevationaccuracy TEXT,
+            depth TEXT,
+            depthaccuracy TEXT,
+            eventdate TEXT,
+            day TEXT,
+            month TEXT,
+            year TEXT,
+            taxonkey TEXT,
+            specieskey TEXT,
+            basisofrecord TEXT,
+            institutioncode TEXT,
+            collectioncode TEXT,
+            catalognumber TEXT,
+            recordnumber TEXT,
+            identifiedby TEXT,
+            dateidentified TEXT,
+            license TEXT,
+            rightsholder TEXT,
+            recordedby TEXT,
+            typestatus TEXT,
+            establishmentmeans TEXT,
+            lastinterpreted TEXT,
+            mediatype TEXT,
+            issue TEXT
         );
-    """)
-    conn.commit()
 
-    # Return the list of H3 indices
-    return [index[0] for index in indices]
+        COPY gbif_occurrences (
+            gbifid,
+            datasetkey,
+            occurrenceid,
+            kingdom,
+            phylum,
+            "class",
+            "order",
+            family,
+            genus,
+            species,
+            infraspecificepithet,
+            taxonrank,
+            scientificname,
+            verbatimscientificname,
+            verbatimscientificnameauthorsh,
+            countrycode,
+            locality,
+            stateprovince,
+            occurrencestatus,
+            individualcount,
+            publishingorgkey,
+            decimallatitude,
+            decimallongitude,
+            coordinateuncertaintyinmeters,
+            coordinateprecision,
+            elevation,
+            elevationaccuracy,
+            depth,
+            depthaccuracy,
+            eventdate,
+            day,
+            month,
+            year,
+            taxonkey,
+            specieskey,
+            basisofrecord,
+            institutioncode,
+            collectioncode,
+            catalognumber,
+            recordnumber,
+            identifiedby,
+            dateidentified,
+            license,
+            rightsholder,
+            recordedby,
+            typestatus,
+            establishmentmeans,
+            lastinterpreted,
+            mediatype,
+            issue
+        )
+        FROM '/var/lib/postgresql/data/cleaned_NR50'
+        WITH (FORMAT csv, HEADER true, DELIMITER E'\t', QUOTE '"'); 
+    """
 
+    # Initialize PostgresHook
+    pg_hook = PostgresHook(postgres_conn_id="oceexp-db")
+
+    try:
+        logging.info("Executing SQL statements...")
+        pg_hook.run(sql_statements, autocommit=True)
+        logging.info("SQL execution completed successfully!")
+    except Exception as e:
+        logging.error(f"SQL execution failed: {e}")
+        raise
+
+def assign_GBIF_hex():
+    # revise for higher resolution in production
+    sql_statements = """
+        ALTER TABLE gbif_occurrences ADD COLUMN location GEOMETRY(point, 4326);
+        UPDATE gbif_occurrences SET location = ST_SETSRID(ST_MakePoint(cast(decimallongitude as float), cast(decimallatitude as float)),4326);
+
+        ALTER TABLE gbif_occurrences ADD COLUMN hex_05 H3INDEX;
+        UPDATE gbif_occurrences SET hex_05 = H3_LAT_LNG_TO_CELL(location, 5);
+    """
+     # Initialize PostgresHook
+    pg_hook = PostgresHook(postgres_conn_id="oceexp-db")
+
+    try:
+        logging.info("Executing SQL statements...")
+        pg_hook.run(sql_statements, autocommit=True)
+        logging.info("SQL execution completed successfully!")
+    except Exception as e:
+        logging.error(f"SQL execution failed: {e}")
+        raise
 
 # Default arguments for DAG
 default_args = {
@@ -206,42 +223,38 @@ default_args = {
 dag = DAG(
     'dataset_ETL_GBIF_occurrence',
     default_args=default_args,
-    description='Fetch occurrences for H3 hexagons and save to PostgreSQL',
+    description='Fetch occurrences from GBIF, save to PostgreSQL, assign hexes',
     schedule_interval=None,  # Trigger manually or modify as needed
     start_date=datetime(2025, 3, 13),
     catchup=False,
 )
 
-# Task to fetch H3 indices
-fetch_indices_task = PythonOperator(
-    task_id='fetch_h3_indices',
-    python_callable=fetch_h3_indices_and_create_table,
+fetch_GBIF_query_table = PythonOperator(
+    task_id='fetch_GBIF_query_table',
+    python_callable=fetch_GBIF_table,
     provide_context=True,
     dag=dag
 )
 
-# Task to fetch occurrences for each H3 index
-def fetch_occurrences_for_each_hexagon(**kwargs):
-    # Get H3 indices from previous task
-    indices = kwargs['ti'].xcom_pull(task_ids='fetch_h3_indices')
-    
-    for h3_index in indices:
-        fetch_and_save_occurrences(h3_index)
-
-
-fetch_occurrences_task = PythonOperator(
-    task_id='fetch_occurrences_for_each_hexagon',
-    python_callable=fetch_occurrences_for_each_hexagon,
+clean_GBIF_query_table = PythonOperator(
+    task_id='clean_GBIF_query_table',
+    python_callable=clean_GBIF,
     provide_context=True,
     dag=dag
 )
 
-#fetch_dense_hexagons_task = PythonOperator(
-    #task_id='fetch_dense_hexagons',
-    #python_callable=fetch_occurrences_for_each_hexagon,
-    #provide_context=True,
-    #dag=dag
-#)
+load_GBIF_table = PythonOperator(
+    task_id='load_GBIF_table',
+    python_callable=load_GBIF_table_csv,
+    provide_context=True,
+    dag=dag
+)
 
+assign_hexes_to_GBIF = PythonOperator(
+    task_id='assign_hexes_to_GBIF',
+    python_callable=assign_GBIF_hex,
+    provide_context=True,
+    dag=dag
+)
 # Define task dependencies
-fetch_indices_task >> fetch_occurrences_task #>> fetch_dense_hexagons_task
+fetch_GBIF_query_table >> clean_GBIF_query_table >> load_GBIF_table >> assign_hexes_to_GBIF

@@ -72,8 +72,7 @@ occdatakey, occdatastring=occ.download(
     user="oerdevops",
     pwd="oceanexploration",
     email="oar.oer.devops@noaa.gov",
-    queries= ['depth > 200', f'geometry = {polygon_wkt}', f'geometry = {polygon2_wkt}']
-    #['depth > 200', f'decimalLatitude > {miny}', f'decimalLatitude < {maxy}', f'decimalLongitude > {minx}', f'decimalLongitude < {maxx}'], pred_type ='and'
+    queries= ['depth > 200', 'hasGeospatialIssue = FALSE', 'hasCoordinate = TRUE']
 )
 print(occdatakey)
 occ.download_get(key=occdatakey,path=str(cells[0]))
@@ -148,3 +147,67 @@ for critter in critters['results']:
 # Show the plot
 #plt.legend()
 #plt.show()
+
+
+# JUST SAVE THIS FOR LATER
+# awk -F'\t' 'NF == 50 {for(i=1; i<=NF; i++) $i="\"" $i "\""; print $0}' OFS='\t' 0002632-250325103851331.csv > cleaned_NR50.csv
+
+
+# AND THIS
+#COPY gbif_occurrences (
+#    gbifid,
+#    datasetkey,
+#    occurrenceid,
+#    kingdom,
+#    phylum,
+#    "class",
+#    "order",
+#    family,
+#   genus,
+#    species,
+#    infraspecificepithet,
+#    taxonrank,
+#    scientificname,
+#    verbatimscientificname,
+#    verbatimscientificnameauthorsh,
+#    countrycode,
+#    locality,
+#    stateprovince,
+#    occurrencestatus,
+#    individualcount,
+#    publishingorgkey,
+#    decimallatitude,
+#    decimallongitude,
+#    coordinateuncertaintyinmeters,
+#    coordinateprecision,
+#    elevation,
+#    elevationaccuracy,
+#    depth,
+#    depthaccuracy,
+#    eventdate,
+#    day,
+#    month,
+#    year,
+#    taxonkey,
+#    specieskey,
+#    basisofrecord,
+#    institutioncode,
+#    collectioncode,
+#    catalognumber,
+#    recordnumber,
+#    identifiedby,
+#    dateidentified,
+#    license,
+#    rightsholder,
+#    recordedby,
+#    typestatus,
+#    establishmentmeans,
+#    lastinterpreted,
+#    mediatype,
+#    issue
+#)
+#FROM '/var/lib/postgresql/data/cleaned_NR50'
+#WITH (FORMAT csv, HEADER true, DELIMITER E'\t', QUOTE '"');
+
+#ALTER TABLE gbif_occurrences ADD COLUMN location GEOMETRY(point, 4326);
+#UPDATE gbif_occurrences SET location = ST_SETSRID(ST_MakePoint(cast(decimallongitude as float), cast(decimallatitude as float)),4326)
