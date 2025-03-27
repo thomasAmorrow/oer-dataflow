@@ -46,9 +46,10 @@ def clean_GBIF(**kwargs):
     # Get the occdatakey from XCom
     ti = kwargs['ti']
     occkey = ti.xcom_pull(task_ids='fetch_GBIF_query_table', key='occdatakey')
+    logging.info(f"Got key {occkey}")
     
     # Input and output file paths
-    input_file = f"gbif_occurrences/{occkey}.csv"
+    input_file = f"/var/lib/postgresql/data/{occkey}.csv"
     output_file = 'cleaned_NR50.csv'
 
     # Check if the file exists before processing
@@ -69,6 +70,8 @@ def clean_GBIF(**kwargs):
             if len(row) == 50:
                 # Add quotes to each field and write the row to the output file
                 writer.writerow([f'"{field}"' for field in row])
+    
+    logging.info("Finished cleaning file!")
 
 
 def load_GBIF_table_csv():
