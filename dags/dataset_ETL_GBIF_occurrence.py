@@ -41,7 +41,7 @@ def fetch_GBIF_table(**kwargs):
 
     if os.path.exists(f"/mnt/data/{occdatakey}.zip"):
         logging.info("Download successful!")
-        with zipfile.ZipFile(f"/mnt/data/{occdatakey}", "r") as zip_ref:
+        with zipfile.ZipFile(f"/mnt/data/{occdatakey}.zip", "r") as zip_ref:
             zip_ref.extractall("/mnt/data/")
 
         logging.info(f"Key successfully identified as {occdatakey}")
