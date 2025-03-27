@@ -72,7 +72,7 @@ occdatakey, occdatastring=occ.download(
     user="oerdevops",
     pwd="oceanexploration",
     email="oar.oer.devops@noaa.gov",
-    queries= ['depth > 200', 'hasGeospatialIssue = FALSE', 'hasCoordinate = TRUE']
+    queries= ['depth > 200', 'basisOfRecord = MACHINE_OBSERVATION', 'hasGeospatialIssue = FALSE', 'hasCoordinate = TRUE']
 )
 print(occdatakey)
 occ.download_get(key=occdatakey,path=str(cells[0]))
