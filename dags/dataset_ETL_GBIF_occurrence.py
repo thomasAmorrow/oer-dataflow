@@ -69,7 +69,10 @@ def fetch_GBIF_table(**kwargs):
                     # Add quotes to each field and write the row to the output file
                     writer.writerow([f'"{field}"' for field in row])
         
-        logging.info("Finished cleaning file!")
+        logging.info("Finished cleaning file, cleanup started...")
+
+        os.remove(f"/mnt/data/{occdatakey}.csv")
+        os.remove(f"/mnt/data/{occdatakey}.zip")
     
 
 def load_GBIF_table_csv():
@@ -101,8 +104,8 @@ def load_GBIF_table_csv():
             occurrencestatus TEXT,
             individualcount TEXT,
             publishingorgkey TEXT,
-            decimallatitude TEXT,
-            decimallongitude TEXT,
+            decimallatitude DOUBLE,
+            decimallongitude DOUBLE,
             coordinateuncertaintyinmeters TEXT,
             coordinateprecision TEXT,
             elevation TEXT,
@@ -198,6 +201,9 @@ def load_GBIF_table_csv():
     except Exception as e:
         logging.error(f"SQL execution failed: {e}")
         raise
+
+    logging.info("Cleaning up csv...")
+    os.remove("/mnt/data/cleaned_NR50.csv")
 
 def assign_GBIF_hex():
     # revise for higher resolution in production
