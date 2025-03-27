@@ -24,6 +24,21 @@ def fetch_GBIF_table(**kwargs):
     time.sleep(8 * 60)
     logging.info("*yawn... I'm awake, trying to download...")
     retries = 0
+
+    if retries < 6:
+        try:
+            logging.info("Downloading occurrence data...")
+            occ.download_get(key=occdatakey, path="/mnt/data")
+        except Exception as e:
+            retries += 1
+            delay = 60 * min(2 ** retries, 32)  # Exponential backoff with a maximum of 32 minutes
+            time.sleep(delay)
+    else:
+        logging.info("Failed download, too many tries")
+
+
+    logging.info(f"Looking for /mnt/data/{occdatakey}.zip...")
+
     if os.path.exists(f"/mnt/data/{occdatakey}.zip"):
         logging.info("Download successful!")
         with zipfile.ZipFile(f"/mnt/data/{occdatakey}", "r") as zip_ref:
@@ -55,17 +70,6 @@ def fetch_GBIF_table(**kwargs):
                     writer.writerow([f'"{field}"' for field in row])
         
         logging.info("Finished cleaning file!")
-
-    elif retries < 6:
-        try:
-            logging.info("Downloading occurrence data...")
-            occ.download_get(key=occdatakey, path="/mnt/data")
-        except Exception as e:
-            retries += 1
-            delay = 60 * min(2 ** retries, 32)  # Exponential backoff with a maximum of 32 minutes
-            time.sleep(delay)
-    else:
-        logging.info("Failed download, too many tries")
     
 
 def load_GBIF_table_csv():
