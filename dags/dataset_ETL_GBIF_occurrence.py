@@ -59,7 +59,7 @@ def fetch_GBIF_table(**kwargs):
     elif retries < 6:
         try:
             logging.info("Downloading occurrence data...")
-            occ.download_get(key=occdatakey, path="/mnt/data/")
+            occ.download_get(key=occdatakey, path="/mnt/data")
         except Exception as e:
             retries += 1
             delay = 60 * min(2 ** retries, 32)  # Exponential backoff with a maximum of 32 minutes
