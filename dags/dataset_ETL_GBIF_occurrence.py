@@ -20,8 +20,8 @@ def fetch_GBIF_table(**kwargs):
         user="oerdevops",
         pwd="oceanexploration",
         email="oar.oer.devops@noaa.gov",
-        queries=['depth > 200', 'hasGeospatialIssue = FALSE', 'hasCoordinate = TRUE']
-        #queries=['depth > 200', 'basisOfRecord = MACHINE_OBSERVATION', 'hasGeospatialIssue = FALSE', 'hasCoordinate = TRUE']
+        #queries=['depth > 200', 'hasGeospatialIssue = FALSE', 'hasCoordinate = TRUE']
+        queries=['depth > 200', 'basisOfRecord = MACHINE_OBSERVATION', 'hasGeospatialIssue = FALSE', 'hasCoordinate = TRUE']
     )
     logging.info("Sleep briefly for GBIF compilation to complete...")
     time.sleep(8 * 60)
