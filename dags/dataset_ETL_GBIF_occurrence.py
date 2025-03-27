@@ -20,7 +20,7 @@ def fetch_GBIF_table(**kwargs):
         #queries=['depth > 200', 'hasGeospatialIssue = FALSE', 'hasCoordinate = TRUE']
         queries=['depth > 200', 'basisOfRecord = MACHINE_OBSERVATION', 'hasGeospatialIssue = FALSE', 'hasCoordinate = TRUE']
     )
-    time.sleep(10 * 60)
+    time.sleep(8 * 60)
     retries = 0
     if os.path.exists("gbif_occurrences_raw.zip"):
         logging.info("Download successful!")
@@ -48,10 +48,14 @@ def clean_GBIF(**kwargs):
     occkey = ti.xcom_pull(task_ids='fetch_GBIF_query_table', key='occdatakey')
     
     # Input and output file paths
-    input_file = "gbif_occurrences/" + occkey + ".csv"
+    input_file = f"gbif_occurrences/{occkey}.csv"
     output_file = 'cleaned_NR50.csv'
 
-    # Open the input and output files
+    # Check if the file exists before processing
+    if not os.path.exists(input_file):
+        logging.error(f"Input file {input_file} not found.")
+        raise Exception(f"Input file {input_file} not found.")
+    
     with open(input_file, 'r', newline='', encoding='utf-8') as infile, \
          open(output_file, 'w', newline='', encoding='utf-8') as outfile:
         
@@ -65,6 +69,7 @@ def clean_GBIF(**kwargs):
             if len(row) == 50:
                 # Add quotes to each field and write the row to the output file
                 writer.writerow([f'"{field}"' for field in row])
+
 
 def load_GBIF_table_csv():
     sql_statements = """
@@ -220,12 +225,11 @@ default_args = {
     'retry_delay': timedelta(minutes=5),
 }
 
-# Define the DAG
 dag = DAG(
     'dataset_ETL_GBIF_occurrence',
     default_args=default_args,
     description='Fetch occurrences from GBIF, save to PostgreSQL, assign hexes',
-    schedule_interval=None,  # Trigger manually or modify as needed
+    schedule_interval=None,
     start_date=datetime(2025, 3, 13),
     catchup=False,
 )
@@ -257,5 +261,6 @@ assign_hexes_to_GBIF = PythonOperator(
     provide_context=True,
     dag=dag
 )
+
 # Define task dependencies
 fetch_GBIF_query_table >> clean_GBIF_query_table >> load_GBIF_table >> assign_hexes_to_GBIF
