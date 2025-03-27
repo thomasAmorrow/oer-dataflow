@@ -17,8 +17,8 @@ def fetch_GBIF_table(**kwargs):
         user="oerdevops",
         pwd="oceanexploration",
         email="oar.oer.devops@noaa.gov",
-        #queries=['depth > 200', 'hasGeospatialIssue = FALSE', 'hasCoordinate = TRUE']
-        queries=['depth > 200', 'basisOfRecord = MACHINE_OBSERVATION', 'hasGeospatialIssue = FALSE', 'hasCoordinate = TRUE']
+        queries=['depth > 200', 'hasGeospatialIssue = FALSE', 'hasCoordinate = TRUE']
+        #queries=['depth > 200', 'basisOfRecord = MACHINE_OBSERVATION', 'hasGeospatialIssue = FALSE', 'hasCoordinate = TRUE']
     )
     logging.info("Sleep briefly for GBIF compilation to complete...")
     time.sleep(8 * 60)
@@ -52,8 +52,8 @@ def fetch_GBIF_table(**kwargs):
 
         # Check if the file exists before processing
         if not os.path.exists(input_file):
-            logging.error(f"Input file {input_file} not found.")
-            raise Exception(f"Input file {input_file} not found.")
+            logging.info(f"Input file {input_file} not found.")
+            #raise Exception(f"Input file {input_file} not found.")
         
         with open(input_file, 'r', newline='', encoding='utf-8') as infile, \
             open(output_file, 'w', newline='', encoding='utf-8') as outfile:
