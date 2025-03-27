@@ -5,11 +5,14 @@ import pygbif
 import time
 import logging
 import csv
+import sys
 from pygbif import occurrences as occ
 from airflow import DAG
 from airflow.providers.postgres.hooks.postgres import PostgresHook
 from airflow.operators.python_operator import PythonOperator
 from datetime import datetime, timedelta
+
+csv.field_size_limit(sys.maxsize)
 
 def fetch_GBIF_table(**kwargs):
     occdatakey, occdatastring = occ.download(
@@ -64,16 +67,21 @@ def fetch_GBIF_table(**kwargs):
 
             # Process each row
             for row in reader:
-                # Check if the number of fields is 50
-                if len(row) == 50:
-                    # Create a new row with quotes around most fields, except for fields 22 and 23
-                    processed_row = [
-                        field  
-                        #f'"{field}"' if index not in [21, 22] else field  # Field 22 is index 21, field 23 is index 22
-                        for index, field in enumerate(row)
-                    ]
-                    # Write the processed row to the output file
-                    writer.writerow(processed_row)
+                try:    
+                    # Check if the number of fields is 50
+                    if len(row) == 50:
+                        # Create a new row with quotes around most fields, except for fields 22 and 23
+                        processed_row = [
+                            field  
+                            #f'"{field}"' if index not in [21, 22] else field  # Field 22 is index 21, field 23 is index 22
+                            for index, field in enumerate(row)
+                        ]
+                        # Write the processed row to the output file
+                        writer.writerow(processed_row)
+                except csv.Error as e:
+                    # Handle the error: skip the row with the large field
+                    logging.info(f"Skipping row due to error: {e}")
+                    continue  # Skip the current row and proceed to the next one
         
         logging.info("Finished cleaning file, cleanup started...")
 
