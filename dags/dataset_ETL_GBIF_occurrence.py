@@ -177,7 +177,7 @@ def load_GBIF_table_csv():
             mediatype,
             issue
         )
-        FROM '/var/lib/postgresql/data/cleaned_NR50'
+        FROM '/var/lib/postgresql/data/cleaned_NR50.csv'
         WITH (FORMAT csv, HEADER true, DELIMITER E'\t', QUOTE '"'); 
     """
 
