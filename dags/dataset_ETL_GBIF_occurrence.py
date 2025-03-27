@@ -68,7 +68,8 @@ def fetch_GBIF_table(**kwargs):
                 if len(row) == 50:
                     # Create a new row with quotes around most fields, except for fields 22 and 23
                     processed_row = [
-                        f'"{field}"' if index not in [21, 22] else field  # Field 22 is index 21, field 23 is index 22
+                        field  
+                        #f'"{field}"' if index not in [21, 22] else field  # Field 22 is index 21, field 23 is index 22
                         for index, field in enumerate(row)
                     ]
                     # Write the processed row to the output file
