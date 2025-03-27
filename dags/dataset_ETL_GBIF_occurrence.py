@@ -26,11 +26,34 @@ def fetch_GBIF_table(**kwargs):
         logging.info("Download successful!")
         with zipfile.ZipFile("/mnt/data/gbif_occurrences_raw.zip", "r") as zip_ref:
             zip_ref.extractall("/mnt/data/")
+
+        logging.info(f"Key successfully identified as {occdatakey}")
+
+        # Input and output file paths
+        input_file = f"/mnt/data/{occdatakey}.csv"
+        output_file = '/mnt/data/cleaned_NR50.csv'
+
+        # Check if the file exists before processing
+        if not os.path.exists(input_file):
+            logging.error(f"Input file {input_file} not found.")
+            raise Exception(f"Input file {input_file} not found.")
         
-        # Push the occdatakey to XCom so the next task can retrieve it
-        kwargs['ti'].xcom_push(key='occdatakey', value=occdatakey)
+        with open(input_file, 'r', newline='', encoding='utf-8') as infile, \
+            open(output_file, 'w', newline='', encoding='utf-8') as outfile:
+            
+            # Create a CSV reader and writer
+            reader = csv.reader(infile, delimiter='\t')
+            writer = csv.writer(outfile, delimiter='\t', quotechar='"', quoting=csv.QUOTE_MINIMAL)
+
+            # Process each row
+            for row in reader:
+                # Check if the number of fields is 50
+                if len(row) == 50:
+                    # Add quotes to each field and write the row to the output file
+                    writer.writerow([f'"{field}"' for field in row])
         
-        return occdatakey
+        logging.info("Finished cleaning file!")
+
     elif retries < 6:
         try:
             occ.download_get(key=occdatakey, path="/mnt/data/gbif_occurrences_raw")
@@ -41,38 +64,6 @@ def fetch_GBIF_table(**kwargs):
     else:
         logging.info("Failed download, too many tries")
     
-
-def clean_GBIF(**kwargs):
-    # Get the occdatakey from XCom
-    ti = kwargs['ti']
-    occkey = ti.xcom_pull(task_ids='fetch_GBIF_query_table', key='occdatakey')
-    logging.info(f"Got key {occkey}")
-    
-    # Input and output file paths
-    input_file = f"/mnt/data/{occkey}.csv"
-    output_file = '/mnt/data/cleaned_NR50.csv'
-
-    # Check if the file exists before processing
-    if not os.path.exists(input_file):
-        logging.error(f"Input file {input_file} not found.")
-        raise Exception(f"Input file {input_file} not found.")
-    
-    with open(input_file, 'r', newline='', encoding='utf-8') as infile, \
-         open(output_file, 'w', newline='', encoding='utf-8') as outfile:
-        
-        # Create a CSV reader and writer
-        reader = csv.reader(infile, delimiter='\t')
-        writer = csv.writer(outfile, delimiter='\t', quotechar='"', quoting=csv.QUOTE_MINIMAL)
-
-        # Process each row
-        for row in reader:
-            # Check if the number of fields is 50
-            if len(row) == 50:
-                # Add quotes to each field and write the row to the output file
-                writer.writerow([f'"{field}"' for field in row])
-    
-    logging.info("Finished cleaning file!")
-
 
 def load_GBIF_table_csv():
     sql_statements = """
@@ -247,13 +238,6 @@ fetch_GBIF_query_table = PythonOperator(
     dag=dag
 )
 
-clean_GBIF_query_table = PythonOperator(
-    task_id='clean_GBIF_query_table',
-    python_callable=clean_GBIF,
-    provide_context=True,
-    dag=dag
-)
-
 load_GBIF_table = PythonOperator(
     task_id='load_GBIF_table',
     python_callable=load_GBIF_table_csv,
@@ -269,4 +253,4 @@ assign_hexes_to_GBIF = PythonOperator(
 )
 
 # Define task dependencies
-fetch_GBIF_query_table >> clean_GBIF_query_table >> load_GBIF_table >> assign_hexes_to_GBIF
+fetch_GBIF_query_table >> load_GBIF_table >> assign_hexes_to_GBIF
