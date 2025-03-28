@@ -28,7 +28,12 @@ def download_and_unzip(url):
     logging.info("Extracted files to: /mnt/data/")
     #return temp_dir
 
-#def netcdf_to_points():
+def netcdf_to_points():
+    file_path = "/mnt/data/GEBCO_2024_TID.nc"
+    data = Dataset(file_path, 'r')
+    latitudes = data.variables['latitude'][:]
+    longitudes = data.variables['longitude'][:]
+    TIDs = data.variables['TID'][:]
 
 
 
