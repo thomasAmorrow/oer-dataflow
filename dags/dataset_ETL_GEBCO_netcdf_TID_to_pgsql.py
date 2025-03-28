@@ -36,14 +36,14 @@ def download_and_unzip(url):
 
 def netcdf_to_points():
     file_path = "/mnt/data/GEBCO_2024_TID.nc"
-
+    
     logging.info("Reading netcdf file.")
-
+    
     data = Dataset(file_path, 'r')
     latitudes = data.variables['lat'][:]
     longitudes = data.variables['lon'][:]
     TIDs = data.variables['tid'][:]
-
+    
     # Convert MaskedArray to regular arrays with None for masked values
     latitudes = latitudes.filled(None)
     longitudes = longitudes.filled(None)
@@ -72,18 +72,21 @@ def netcdf_to_points():
         pg_hook.run(sql_statements, autocommit=True)
         logging.info("Table created successfully!")
 
-        # Insert latitudes, longitudes, and TIDs
-        insert_query = """
-            INSERT INTO gebco_tid (latitude, longitude, tid) 
-            VALUES (%s, %s, %s)
-        """
-        
         # Prepare data for insertion (ensure correct types and skip invalid rows)
         data_to_insert = [
             (lat, lon, tid)  # Ensure TID is an integer
             for lat, lon, tid in zip(latitudes, longitudes, TIDs)
             if tid is not None  # Skip rows with None as TID
         ]
+        
+        # Convert numpy array to a list
+        data_to_insert = np.array(data_to_insert).tolist()  # Ensure the data is in list format
+
+        # Insert latitudes, longitudes, and TIDs
+        insert_query = """
+            INSERT INTO gebco_tid (latitude, longitude, tid) 
+            VALUES (%s, %s, %s)
+        """
 
         # Execute the insert statements
         logging.info("Inserting data into the table...")
@@ -94,6 +97,25 @@ def netcdf_to_points():
         logging.error(f"SQL execution failed: {e}")
         raise
 
+def assign_gebcoTID_hex():
+    # revise for higher resolution in production
+    sql_statements = """
+        ALTER TABLE gebco_tid ADD COLUMN location GEOMETRY(point, 4326);
+        UPDATE gbif_occurrences SET location = ST_SETSRID(ST_MakePoint(cast(longitude as float), cast(latitude as float)),4326);
+
+        ALTER TABLE gebco_tid ADD COLUMN hex_05 H3INDEX;
+        UPDATE gebco_tid SET hex_05 = H3_LAT_LNG_TO_CELL(location, 5);
+    """
+     # Initialize PostgresHook
+    pg_hook = PostgresHook(postgres_conn_id="oceexp-db")
+
+    try:
+        logging.info("Executing SQL statements...")
+        pg_hook.run(sql_statements, autocommit=True)
+        logging.info("SQL execution completed successfully!")
+    except Exception as e:
+        logging.error(f"SQL execution failed: {e}")
+        raise
 
 default_args = {
     'owner': 'airflow',
@@ -130,5 +152,12 @@ netcdf_to_XYTID_points = PythonOperator(
     dag=dag
 )
 
+assign_hexes_to_gebco = PythonOperator(
+    task_id='assign_hexes_to_gebco',
+    python_callable=assign_gebcoTID_hex,
+    provide_context=True,
+    dag=dag
+)
+
 # DAG task dependencies
-download_and_unzip >> netcdf_to_XYTID_points
+download_and_unzip >> netcdf_to_XYTID_points >> assign_hexes_to_gebco
