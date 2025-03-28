@@ -12,6 +12,8 @@ import netCDF4
 from netCDF4 import Dataset
 import psycopg2
 from psycopg2 import sql
+import numpy as np
+
 
 def download_and_unzip(url):
     """Download the ZIP file, extract contents, and return the extracted directory path."""
