@@ -12,6 +12,7 @@ import netCDF4
 from netCDF4 import Dataset
 import psycopg2
 from psycopg2 import sql
+import numpy.ma as ma
 
 def download_and_unzip(url):
     """Download the ZIP file, extract contents, and return the extracted directory path."""
@@ -71,9 +72,9 @@ def netcdf_to_points():
             VALUES (%s, %s, %s)
         """
         
-        # Prepare data for insertion (ensure correct types)
+        # Prepare data for insertion (keep TID as it is, handling masked data)
         data_to_insert = [
-            (lat, lon, int(tid))  # Ensure TID is an integer
+            (lat, lon, tid if not ma.is_masked(tid) else None)  # Keep tid as float or None for masked values
             for lat, lon, tid in zip(latitudes, longitudes, TIDs)
         ]
 
