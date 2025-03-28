@@ -8,7 +8,10 @@ import os
 import tempfile
 import subprocess
 import logging
+import netCDF4
 from netCDF4 import Dataset
+import psycopg2
+from psycopg2 import sql
 
 def download_and_unzip(url):
     """Download the ZIP file, extract contents, and return the extracted directory path."""
@@ -28,6 +31,7 @@ def download_and_unzip(url):
     logging.info("Extracted files to: /mnt/data/")
     #return temp_dir
 
+
 def netcdf_to_points():
     file_path = "/mnt/data/GEBCO_2024_TID.nc"
     data = Dataset(file_path, 'r')
@@ -35,7 +39,49 @@ def netcdf_to_points():
     longitudes = data.variables['longitude'][:]
     TIDs = data.variables['TID'][:]
 
-    logging.info(f"{TIDs[1:4]}")
+    # Initialize PostgresHook
+    pg_hook = PostgresHook(postgres_conn_id="oceexp-db")
+    
+    # SQL statements for creating extensions and table
+    sql_statements = """
+        CREATE EXTENSION IF NOT EXISTS h3;
+        CREATE EXTENSION IF NOT EXISTS h3_postgis CASCADE;
+
+        DROP TABLE IF EXISTS gebco_tid;
+        
+        CREATE TABLE gebco_tid (
+            latitude DECIMAL,
+            longitude DECIMAL,
+            tid INTEGER
+        );
+    """
+    
+    # execute SQL statement to create table
+    try:
+        logging.info("Executing SQL statements to create table...")
+        pg_hook.run(sql_statements, autocommit=True)
+        logging.info("Table created successfully!")
+
+        # Insert latitudes, longitudes, and TIDs
+        insert_query = """
+            INSERT INTO gebco_tid (latitude, longitude, tid) 
+            VALUES (%s, %s, %s)
+        """
+        
+        # Prepare data for insertion (ensure correct types)
+        data_to_insert = [
+            (lat, lon, int(tid))  # Ensure TID is an integer
+            for lat, lon, tid in zip(latitudes, longitudes, TIDs)
+        ]
+
+        # Execute the insert statements
+        logging.info("Inserting data into the table...")
+        pg_hook.insert_rows(table="gebco_tid", rows=data_to_insert, commit_every=1000)
+        logging.info("Data insertion completed successfully!")
+
+    except Exception as e:
+        logging.error(f"SQL execution failed: {e}")
+        raise
 
 
 default_args = {
@@ -43,7 +89,7 @@ default_args = {
     'depends_on_past': False,
     'email_on_failure': False,
     'email_on_retry': False,
-    'retries': 1,
+    'retries': 0,
     'retry_delay': timedelta(minutes=5),
 }
 

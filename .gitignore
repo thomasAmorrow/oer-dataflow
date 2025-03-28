@@ -6,3 +6,4 @@ data
 pygbif_query
 __pycache__/*
 *.csv
+.vscode
