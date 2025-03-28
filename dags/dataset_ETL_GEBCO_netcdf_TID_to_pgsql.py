@@ -35,9 +35,9 @@ def download_and_unzip(url):
 def netcdf_to_points():
     file_path = "/mnt/data/GEBCO_2024_TID.nc"
     data = Dataset(file_path, 'r')
-    latitudes = data.variables['latitude'][:]
-    longitudes = data.variables['longitude'][:]
-    TIDs = data.variables['TID'][:]
+    latitudes = data.variables['lat'][:]
+    longitudes = data.variables['lon'][:]
+    TIDs = data.variables['tid'][:]
 
     # Initialize PostgresHook
     pg_hook = PostgresHook(postgres_conn_id="oceexp-db")
