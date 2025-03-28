@@ -97,7 +97,7 @@ def load_GBIF_table_csv():
         DROP TABLE IF EXISTS gbif_occurrences;
         
         CREATE TABLE gbif_occurrences (
-            gbifid INTEGER PRIMARY KEY,
+            gbifid BIGINT PRIMARY KEY,
             datasetkey TEXT,
             occurrenceid TEXT,
             kingdom TEXT,
