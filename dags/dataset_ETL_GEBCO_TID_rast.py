@@ -35,7 +35,7 @@ def netcdf_to_points():
     longitudes = data.variables['longitude'][:]
     TIDs = data.variables['TID'][:]
 
-    print(f"{TIDs[1:4]}")
+    logging.info(f"{TIDs[1:4]}")
 
 
 default_args = {
