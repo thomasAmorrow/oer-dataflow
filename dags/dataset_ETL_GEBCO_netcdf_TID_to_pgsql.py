@@ -52,7 +52,7 @@ def netcdf_to_points():
         CREATE TABLE gebco_tid (
             latitude DECIMAL,
             longitude DECIMAL,
-            tid INTEGER
+            tid NUMERIC
         );
     """
     
