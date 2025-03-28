@@ -13,6 +13,8 @@ from netCDF4 import Dataset
 import psycopg2
 from psycopg2 import sql
 import numpy as np
+import csv
+import tempfile
 
 
 def download_and_unzip(url):
@@ -72,25 +74,34 @@ def netcdf_to_points():
         pg_hook.run(sql_statements, autocommit=True)
         logging.info("Table created successfully!")
 
-        # Prepare data for insertion (ensure correct types and skip invalid rows)
-        data_to_insert = []
+        # Create a temporary CSV file to store data
+        with tempfile.NamedTemporaryFile(delete=False, mode='w', newline='') as tmp_file:
+            csv_writer = csv.writer(tmp_file)
+            # Write the header row
+            csv_writer.writerow(['latitude', 'longitude', 'tid'])
 
-        for i in range(len(latitudes)):
-            for j in range(len(longitudes)):
-                tid_value = TIDs[i, j]
-                if tid_value is not None:
-                    data_to_insert.append((latitudes[i], longitudes[j], tid_value))
-        
-        # Insert latitudes, longitudes, and TIDs
-        insert_query = """
-            INSERT INTO gebco_tid (latitude, longitude, tid) 
-            VALUES (%s, %s, %s)
-        """
-        
-        # Execute the insert statements
-        logging.info("Inserting data into the table...")
-        pg_hook.insert_rows(table="gebco_tid", rows=data_to_insert, commit_every=1000)
-        logging.info("Data insertion completed successfully!")
+            # Prepare data for insertion (write to CSV instead of storing in memory)
+            for i in range(len(latitudes)):
+                for j in range(len(longitudes)):
+                    tid_value = TIDs[i, j]
+                    if tid_value is not None:
+                        # Write row to CSV
+                        csv_writer.writerow([latitudes[i], longitudes[j], tid_value])
+            
+            tmp_file.close()
+            logging.info(f"Data written to temporary CSV file: {tmp_file.name}")
+
+            # Use PostgreSQL COPY to load data from CSV file
+            copy_sql = """
+                COPY gebco_tid (latitude, longitude, tid)
+                FROM %s
+                WITH (FORMAT csv, HEADER true);
+            """
+            
+            # Execute the COPY command
+            logging.info("Loading data into PostgreSQL...")
+            pg_hook.run(copy_sql, parameters=(tmp_file.name,), autocommit=True)
+            logging.info("Data loaded successfully into PostgreSQL!")
 
     except Exception as e:
         logging.error(f"SQL execution failed: {e}")
