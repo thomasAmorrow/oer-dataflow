@@ -48,7 +48,7 @@ def netcdf_to_points():
     latitudes = latitudes.filled(None)
     longitudes = longitudes.filled(None)
     TIDs = TIDs.filled(None)
-
+    
     # Initialize PostgresHook
     pg_hook = PostgresHook(postgres_conn_id="oceexp-db")
     
@@ -73,21 +73,20 @@ def netcdf_to_points():
         logging.info("Table created successfully!")
 
         # Prepare data for insertion (ensure correct types and skip invalid rows)
-        data_to_insert = [
-            (lat, lon, tid)  # Ensure TID is an integer
-            for lat, lon, tid in zip(latitudes, longitudes, TIDs)
-            if tid is not None  # Skip rows with None as TID
-        ]
-        
-        # Convert numpy array to a list
-        data_to_insert = np.array(data_to_insert).tolist()  # Ensure the data is in list format
+        data_to_insert = []
 
+        for i in range(len(latitudes)):
+            for j in range(len(longitudes)):
+                tid_value = TIDs[i, j]
+                if tid_value is not None:
+                    data_to_insert.append((latitudes[i], longitudes[j], tid_value))
+        
         # Insert latitudes, longitudes, and TIDs
         insert_query = """
             INSERT INTO gebco_tid (latitude, longitude, tid) 
             VALUES (%s, %s, %s)
         """
-
+        
         # Execute the insert statements
         logging.info("Inserting data into the table...")
         pg_hook.insert_rows(table="gebco_tid", rows=data_to_insert, commit_every=1000)
