@@ -12,7 +12,6 @@ import netCDF4
 from netCDF4 import Dataset
 import psycopg2
 from psycopg2 import sql
-import numpy.ma as ma
 
 def download_and_unzip(url):
     """Download the ZIP file, extract contents, and return the extracted directory path."""
@@ -37,7 +36,7 @@ def netcdf_to_points():
     file_path = "/mnt/data/GEBCO_2024_TID.nc"
 
     logging.info("Reading netcdf file.")
-    
+
     data = Dataset(file_path, 'r')
     latitudes = data.variables['lat'][:]
     longitudes = data.variables['lon'][:]
@@ -72,10 +71,11 @@ def netcdf_to_points():
             VALUES (%s, %s, %s)
         """
         
-        # Prepare data for insertion (keep TID as it is, handling masked data)
+        # Prepare data for insertion (ensure correct types and skip invalid rows)
         data_to_insert = [
-            (lat, lon, tid if not ma.is_masked(tid) else None)  # Keep tid as float or None for masked values
+            (lat, lon, tid)  # Ensure TID is an integer
             for lat, lon, tid in zip(latitudes, longitudes, TIDs)
+            if tid is not None
         ]
 
         # Execute the insert statements
