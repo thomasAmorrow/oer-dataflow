@@ -34,6 +34,9 @@ def download_and_unzip(url):
 
 def netcdf_to_points():
     file_path = "/mnt/data/GEBCO_2024_TID.nc"
+
+    logging.info("Reading netcdf file.")
+    
     data = Dataset(file_path, 'r')
     latitudes = data.variables['lat'][:]
     longitudes = data.variables['lon'][:]
