@@ -42,6 +42,11 @@ def netcdf_to_points():
     longitudes = data.variables['lon'][:]
     TIDs = data.variables['tid'][:]
 
+    # Convert MaskedArray to regular arrays with None for masked values
+    latitudes = latitudes.filled(None)
+    longitudes = longitudes.filled(None)
+    TIDs = TIDs.filled(None)
+
     # Initialize PostgresHook
     pg_hook = PostgresHook(postgres_conn_id="oceexp-db")
     
@@ -75,7 +80,7 @@ def netcdf_to_points():
         data_to_insert = [
             (lat, lon, tid)  # Ensure TID is an integer
             for lat, lon, tid in zip(latitudes, longitudes, TIDs)
-            if tid is not None
+            if tid is not None  # Skip rows with None as TID
         ]
 
         # Execute the insert statements
