@@ -35,6 +35,7 @@ def netcdf_to_points():
     longitudes = data.variables['longitude'][:]
     TIDs = data.variables['TID'][:]
 
+    print(f"{TIDs[1:4]}")
 
 
 default_args = {
@@ -66,5 +67,11 @@ download_and_unzip = PythonOperator(
     dag=dag
 )
 
+netcdf_to_XYTID_points = PythonOperator(
+    task_id='netcdf_to_XYTID_points',
+    python_callable=netcdf_to_points,
+    dag=dag
+)
+
 # DAG task dependencies
-download_and_unzip
+download_and_unzip >> netcdf_to_XYTID_points
