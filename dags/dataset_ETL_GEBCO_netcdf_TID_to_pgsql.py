@@ -98,11 +98,45 @@ def netcdf_to_pgsql(table_name, db_name, db_user, srid, chunk_size=1000):
 def assign_gebcoTID_hex():
     """Assign hexes to GEBCO data."""
     sql_statements = """
-        ALTER TABLE gebco_2024 ADD COLUMN location GEOMETRY(point, 4326);
-        UPDATE gebco_2024 SET location = ST_SETSRID(ST_MakePoint(cast(longitude as float), cast(latitude as float)),4326);
+        DROP TABLE IF EXISTS gebco_2024_polygons;
+        
 
-        ALTER TABLE gebco_2024 ADD COLUMN hex_05 H3INDEX;
-        UPDATE gebco_2024 SET hex_05 = H3_LAT_LNG_TO_CELL(location, 5);
+        CREATE TABLE gebco_2024_polygons (
+            polygon_id SERIAL PRIMARY KEY,
+            rid INTEGER,
+            polygon GEOMETRY,
+            val INTEGER
+        );
+
+
+        INSERT INTO gebco_2024_polygons (rid, polygon, val)
+        SELECT r.rid, d.geom AS polygon, d.val
+        FROM gebco_2024 r
+        JOIN LATERAL ST_DumpAsPolygons(r.rast) AS d(geom, val) ON true
+        WHERE d.val BETWEEN 10 AND 17;
+
+        CREATE EXTENSION IF NOT EXISTS h3;
+        CREATE EXTENSION IF NOT EXISTS h3_postgis CASCADE;
+
+        DROP TABLE IF EXISTS gebco_tid_hex;
+        CREATE TABLE gebco_tid_hex (
+            hex_05 H3INDEX,
+            val INT
+        );
+
+        INSERT INTO gebco_tid_hex (hex_05, val)
+        SELECT hex_05, val
+        FROM gebco_2024_polygons,
+        LATERAL h3_polygon_to_cells(polygon, 5) AS hex_05
+        WHERE val IN (10, 11, 12, 13, 14, 15, 16, 17)
+
+        UNION ALL
+
+        SELECT hex_05, val
+        FROM gebco_2024_polygons,
+        LATERAL h3_polygon_to_cells(polygon, 5) AS hex_05
+        WHERE val NOT IN (10, 11, 12, 13, 14, 15, 16, 17);
+
     """
 
     # Initialize PostgresHook
