@@ -35,7 +35,7 @@ def download_and_unzip(url):
     #return temp_dir
 
 
-def netcdf_to_pgsql(table_name, db_name, db_user, srid="4326"):
+def netcdf_to_pgsql(table_name, db_name, db_user, srid):
     """Loads a raster file into a PostgreSQL/PostGIS database using raster2pgsql."""
     file_path = "/mnt/data/GEBCO_2024_TID.nc"
     command = f'raster2pgsql -s {srid} -I -C -c "{file_path}" "{table_name}" | psql -d {db_name} -U {db_user}'
@@ -98,7 +98,13 @@ download_and_unzip = PythonOperator(
 
 netcdf_to_pgsql = PythonOperator(
     task_id='netcdf_to_pgsql',
-    python_callable=netcdf_to_pgsql(table_name, postgres_conn_id, postgres_conn_user, srid="4326"),
+    python_callable=netcdf_to_pgsql,
+    op_kwargs={
+    'table_name': table_name,
+    'db_name': postgres_conn_id,
+    'db_user': postgres_conn_user,
+    'srid' : "4326"
+    },
     dag=dag
 )
 
