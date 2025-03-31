@@ -41,9 +41,9 @@ def netcdf_to_pgsql(table_name, db_name, db_user, srid="4326"):
     command = f'raster2pgsql -s {srid} -I -C -c "{file_path}" "{table_name}" | psql -d {db_name} -U {db_user}'
     try:
         subprocess.run(command, shell=True, check=True, capture_output=True)
-        print(f"Raster {raster_path} loaded successfully into table {table_name}.")
+        print(f"Raster {file_path} loaded successfully into table {table_name}.")
     except subprocess.CalledProcessError as e:
-         print(f"Error loading raster {raster_path}: {e.stderr.decode()}")
+         print(f"Error loading raster {file_path}: {e.stderr.decode()}")
 
 
 def assign_gebcoTID_hex():
