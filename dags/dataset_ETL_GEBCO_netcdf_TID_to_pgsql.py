@@ -30,12 +30,14 @@ def netcdf_to_pgsql(table_name, db_name, db_user, srid):
     file_path = "/mnt/data/GEBCO_2024_TID.nc"
     sql_file_path = "/mnt/data/gebco_2024.sql"
     
+    logging.info('Creating SQL file...')
     # Create the SQL file using raster2pgsql
     command = f'raster2pgsql -s {srid} -t 256x256 -I -C -c "{file_path}" "{table_name}" > {sql_file_path}'
     
     # Execute raster2pgsql command to generate the SQL file
     subprocess.run(command, shell=True, check=True)
 
+    logging.info('SQL file created, loading...')
     # Now execute the generated SQL file in the PostgreSQL database using psql
     pg_hook = PostgresHook(postgres_conn_id="oceexp-db")
 
