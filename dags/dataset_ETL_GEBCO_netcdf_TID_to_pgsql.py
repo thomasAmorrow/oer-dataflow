@@ -42,10 +42,17 @@ def netcdf_to_pgsql(table_name, db_name, db_user, srid):
     pg_hook = PostgresHook(postgres_conn_id="oceexp-db")
 
     try:
+        # Accessing connection details from the hook
+        conn = pg_hook.get_conn()
+        host = conn.host
+        port = conn.port
+        user = conn.user
+        password = conn.password
+
         logging.info(f"Loading SQL file {sql_file_path} into database...")
         
-        # Load the SQL file into PostgreSQL
-        pg_hook.run(f"psql -d {db_name} -U {db_user} -f {sql_file_path}", autocommit=True)
+        # Run the SQL file using the PostgreSQL connection info from Airflow
+        pg_hook.run(f"psql -d {db_name} -U {user} -f {sql_file_path} -h {host} -p {port}", autocommit=True)
         
         logging.info("SQL file loaded successfully into PostgreSQL!")
     except Exception as e:
