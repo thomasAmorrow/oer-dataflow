@@ -37,9 +37,24 @@ def netcdf_to_pgsql(table_name, db_name, db_user, srid, chunk_size=1000):
     # Execute raster2pgsql command to generate the SQL file
     subprocess.run(command, shell=True, check=True)
 
-    logging.info('SQL file created, loading...')
-    # Now execute the generated SQL file in the PostgreSQL database using psql
+    # Ensure raster extensions exist
+    sql_statements="""
+    CREATE EXTENSION IF NOT EXISTS postgis;
+    CREATE EXTENSION IF NOT EXISTS postgis_raster;
+    """
+
+     # Initialize PostgresHook
     pg_hook = PostgresHook(postgres_conn_id="oceexp-db")
+
+    try:
+        logging.info("Executing SQL statements...")
+        pg_hook.run(sql_statements, autocommit=True)
+        logging.info("SQL execution completed successfully, confirmed raster extension")
+    except Exception as e:
+        logging.error(f"SQL execution failed: {e}")
+        raise
+
+    logging.info('SQL file created, loading...')
 
     try:
         # Accessing connection details from the hook
