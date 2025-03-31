@@ -30,6 +30,30 @@ latitudes = data.variables['lat'][:]
 longitudes = data.variables['lon'][:]
 TIDs = data.variables['tid'][:]
 
+import rasterio
+import rasterio.features
+import geopandas as gpd
+from shapely.geometry import shape
+
+# Path to the input raster file
+raster_path = 'gebcodata/GEBCO_2024_TID.nc'
+# Path to the output shapefile
+shapefile_path = 'output.shp'
+
+with rasterio.open(raster_path) as src:
+    image = src.read(1)
+    results = (
+        {'properties': {'raster_val': v}, 'geometry': shape(s)}
+        for i, (s, v) in enumerate(rasterio.features.shapes(image, mask=None, transform=src.transform))
+    )
+
+geoms = list(results)
+gdf = gpd.GeoDataFrame.from_features(geoms)
+gdf.crs = src.crs
+gdf.to_file(shapefile_path)
+
+print(f"Shapefile saved to {shapefile_path}")
+
 #print(f"{TIDs[1:4]}")
 
 #os.remove(zip_path)  # Cleanup zip file

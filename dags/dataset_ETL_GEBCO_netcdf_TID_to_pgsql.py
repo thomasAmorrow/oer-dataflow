@@ -16,7 +16,6 @@ import numpy as np
 import csv
 import tempfile
 
-
 def download_and_unzip(url):
     """Download the ZIP file, extract contents, and return the extracted directory path."""
     zip_path = "/mnt/data/gebco_2024.zip"
@@ -36,85 +35,25 @@ def download_and_unzip(url):
     #return temp_dir
 
 
-def netcdf_to_points():
+def netcdf_to_pgsql(table_name, db_name, db_user, srid="4326"):
+    """Loads a raster file into a PostgreSQL/PostGIS database using raster2pgsql."""
     file_path = "/mnt/data/GEBCO_2024_TID.nc"
-    
-    logging.info("Reading netcdf file.")
-    
-    data = Dataset(file_path, 'r')
-    latitudes = data.variables['lat'][:]
-    longitudes = data.variables['lon'][:]
-    TIDs = data.variables['tid'][:]
-    
-    # Convert MaskedArray to regular arrays with None for masked values
-    latitudes = latitudes.filled(None)
-    longitudes = longitudes.filled(None)
-    TIDs = TIDs.filled(None)
-    
-    # Initialize PostgresHook
-    pg_hook = PostgresHook(postgres_conn_id="oceexp-db")
-    
-    # SQL statements for creating extensions and table
-    sql_statements = """
-        CREATE EXTENSION IF NOT EXISTS h3;
-        CREATE EXTENSION IF NOT EXISTS h3_postgis CASCADE;
-
-        DROP TABLE IF EXISTS gebco_tid;
-        
-        CREATE TABLE gebco_tid (
-            latitude DECIMAL,
-            longitude DECIMAL,
-            tid NUMERIC
-        );
-    """
-    
-    # execute SQL statement to create table
+    command = f'raster2pgsql -s {srid} -I -C -c "{file_path}" "{table_name}" | psql -d {db_name} -U {db_user}'
     try:
-        logging.info("Executing SQL statements to create table...")
-        pg_hook.run(sql_statements, autocommit=True)
-        logging.info("Table created successfully!")
+        subprocess.run(command, shell=True, check=True, capture_output=True)
+        print(f"Raster {raster_path} loaded successfully into table {table_name}.")
+    except subprocess.CalledProcessError as e:
+         print(f"Error loading raster {raster_path}: {e.stderr.decode()}")
 
-        # Create a temporary CSV file to store data
-        with tempfile.NamedTemporaryFile(delete=False, mode='w', newline='') as tmp_file:
-            csv_writer = csv.writer(tmp_file)
-            # Write the header row
-            csv_writer.writerow(['latitude', 'longitude', 'tid'])
-
-            # Prepare data for insertion (write to CSV instead of storing in memory)
-            for i in range(len(latitudes)):
-                for j in range(len(longitudes)):
-                    tid_value = TIDs[i, j]
-                    if tid_value is not None:
-                        # Write row to CSV
-                        csv_writer.writerow([latitudes[i], longitudes[j], tid_value])
-            
-            tmp_file.close()
-            logging.info(f"Data written to temporary CSV file: {tmp_file.name}")
-
-            # Use PostgreSQL COPY to load data from CSV file
-            copy_sql = """
-                COPY gebco_tid (latitude, longitude, tid)
-                FROM %s
-                WITH (FORMAT csv, HEADER true);
-            """
-            
-            # Execute the COPY command
-            logging.info("Loading data into PostgreSQL...")
-            pg_hook.run(copy_sql, parameters=(tmp_file.name,), autocommit=True)
-            logging.info("Data loaded successfully into PostgreSQL!")
-
-    except Exception as e:
-        logging.error(f"SQL execution failed: {e}")
-        raise
 
 def assign_gebcoTID_hex():
     # revise for higher resolution in production
     sql_statements = """
-        ALTER TABLE gebco_tid ADD COLUMN location GEOMETRY(point, 4326);
-        UPDATE gbif_occurrences SET location = ST_SETSRID(ST_MakePoint(cast(longitude as float), cast(latitude as float)),4326);
+        ALTER TABLE gebco_2024 ADD COLUMN location GEOMETRY(point, 4326);
+        UPDATE gebco_2024 SET location = ST_SETSRID(ST_MakePoint(cast(longitude as float), cast(latitude as float)),4326);
 
-        ALTER TABLE gebco_tid ADD COLUMN hex_05 H3INDEX;
-        UPDATE gebco_tid SET hex_05 = H3_LAT_LNG_TO_CELL(location, 5);
+        ALTER TABLE gebco_2024 ADD COLUMN hex_05 H3INDEX;
+        UPDATE gebco_2024 SET hex_05 = H3_LAT_LNG_TO_CELL(location, 5);
     """
      # Initialize PostgresHook
     pg_hook = PostgresHook(postgres_conn_id="oceexp-db")
@@ -139,6 +78,7 @@ default_args = {
 netcdf_url = "https://www.bodc.ac.uk/data/open_download/gebco/gebco_2024_tid/zip/"
 table_name = "gebco_2024"
 postgres_conn_id = "oceexp-db"
+postgres_conn_user = "oceexp-db"
 
 dag = DAG(
     'dataset_ETL_GEBCO_netcdf_TID_to_pgsql',
@@ -156,9 +96,9 @@ download_and_unzip = PythonOperator(
     dag=dag
 )
 
-netcdf_to_XYTID_points = PythonOperator(
-    task_id='netcdf_to_XYTID_points',
-    python_callable=netcdf_to_points,
+netcdf_to_pgsql = PythonOperator(
+    task_id='netcdf_to_pgsql',
+    python_callable=netcdf_to_pgsql(table_name, postgres_conn_id, postgres_conn_user, srid="4326"),
     dag=dag
 )
 
@@ -170,4 +110,4 @@ assign_hexes_to_gebco = PythonOperator(
 )
 
 # DAG task dependencies
-download_and_unzip >> netcdf_to_XYTID_points >> assign_hexes_to_gebco
+download_and_unzip >> netcdf_to_pgsql >> assign_hexes_to_gebco
