@@ -144,6 +144,13 @@ services:
       airflow-init:
         condition: service_completed_successfully
 
+  web:
+    image: nginx:alpine
+    ports:
+      - "8000:80"
+    volumes:
+      - ./app:/usr/share/nginx/html
+
   airflow-scheduler:
     <<: *airflow-common
     command: scheduler
