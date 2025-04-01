@@ -92,40 +92,40 @@ services:
       start_period: 30s
     restart: always
 
-  spark-master: 
-    image: spark:3.5.5-scala2.12-java17-ubuntu
-    container_name: spark-master 
-    ports: 
-      - "9090:8080"
-      - "7077:7077"
-    environment:
-      - SPARK_MODE=master
-      - SPARK_LOCAL_IP=spark-master
-      - SPARK_WORKLOAD=master
-    volumes:
-      - ./apps:/opt/spark-apps
-      - ./sparkdata:/opt/spark-data
+  #spark-master: 
+  #  image: spark:3.5.5-scala2.12-java17-ubuntu
+  #  container_name: spark-master 
+  #  ports: 
+  #    - "9090:8080"
+  #    - "7077:7077"
+  #  environment:
+  #    - SPARK_MODE=master
+  #    - SPARK_LOCAL_IP=spark-master
+  #    - SPARK_WORKLOAD=master
+  #  volumes:
+  #    - ./apps:/opt/spark-apps
+  #    - ./sparkdata:/opt/spark-data
 
-  spark-worker: 
-    image: spark:3.5.5-scala2.12-java17-ubuntu
-    container_name: spark-worker-a
-    ports: 
-      - "9090:8080"
-      - "7077:7077"
-    environment: 
-      - SPARK_MODE=worker 
-      - SPARK_MASTER_URL=spark://spark-master:7077
-      - SPARK_WORKER_CORES=1
-      - SPARK_WORKER_MEMORY=1G
-      - SPARK_DRIVER_MEMORY=1G
-      - SPARK_EXECUTOR_MEMORY=1G
-      - SPARK_WORKLOAD=worker
-      - SPARK_LOCAL_IP=spark-worker-a
-    depends_on: 
-      - spark-master
-    volumes:
-      - ./apps:/opt/spark-apps
-      - ./sparkdata:/opt/spark-data
+  #spark-worker: 
+  #  image: spark:3.5.5-scala2.12-java17-ubuntu
+  #  container_name: spark-worker
+  #  ports: 
+  #    - "9090:8080"
+  #    - "7077:7077"
+  #  environment: 
+  #    - SPARK_MODE=worker 
+  #    - SPARK_MASTER_URL=spark://spark-master:7077
+  #    - SPARK_WORKER_CORES=1
+  #    - SPARK_WORKER_MEMORY=1G
+  #    - SPARK_DRIVER_MEMORY=1G
+  #    - SPARK_EXECUTOR_MEMORY=1G
+  #    - SPARK_WORKLOAD=worker
+  #    - SPARK_LOCAL_IP=spark-worker-a
+  #  depends_on: 
+  #    - spark-master
+  #  volumes:
+  #    - ./apps:/opt/spark-apps
+  #    - ./sparkdata:/opt/spark-data
 
   airflow-webserver:
     <<: *airflow-common
