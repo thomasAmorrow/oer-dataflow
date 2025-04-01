@@ -1,0 +1,56 @@
+services: 
+  spark-master: 
+    image: apache/spark-py:latest
+    container_name: spark-master 
+    ports: 
+      - "9090:8080"
+      - "7077:7077"
+    environment:
+      - SPARK_MODE=master
+      - SPARK_LOCAL_IP=spark-master
+      - SPARK_WORKLOAD=master
+    volumes:
+      - ./apps:/opt/spark-apps
+      - ./sparkdata:/opt/spark-data
+
+  spark-worker-a: 
+    image: apache/spark-py:latest
+    container_name: spark-worker-a
+    ports: 
+      - "9090:8080"
+      - "7077:7077"
+    environment: 
+      - SPARK_MODE=worker 
+      - SPARK_MASTER_URL=spark://spark-master:7077
+      - SPARK_WORKER_CORES=1
+      - SPARK_WORKER_MEMORY=1G
+      - SPARK_DRIVER_MEMORY=1G
+      - SPARK_EXECUTOR_MEMORY=1G
+      - SPARK_WORKLOAD=worker
+      - SPARK_LOCAL_IP=spark-worker-a
+    depends_on: 
+      - spark-master
+    volumes:
+      - ./apps:/opt/spark-apps
+      - ./sparkdata:/opt/spark-data
+
+  spark-worker-b: 
+    image: apache/spark-py:latest
+    container_name: spark-worker-b
+    ports: 
+      - "9090:8080"
+      - "7077:7077"
+    environment: 
+      - SPARK_MODE=worker 
+      - SPARK_MASTER_URL=spark://spark-master:7077
+      - SPARK_WORKER_CORES=1
+      - SPARK_WORKER_MEMORY=1G
+      - SPARK_DRIVER_MEMORY=1G
+      - SPARK_EXECUTOR_MEMORY=1G
+      - SPARK_WORKLOAD=worker
+      - SPARK_LOCAL_IP=spark-worker-b
+    depends_on: 
+      - spark-master
+    volumes:
+      - ./apps:/opt/spark-apps
+      - ./sparkdata:/opt/spark-data
