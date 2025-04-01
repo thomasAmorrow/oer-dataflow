@@ -20,7 +20,7 @@ def download_and_unzip(url):
             f.write(chunk)
 
     with zipfile.ZipFile(zip_path, "r") as zip_ref:
-        zip_ref.extractall("/mnt/data/")
+        zip_ref.extract("GEBCO_2024_TID.nc","/mnt/data/")
 
     logging.info("Extracted files to: /mnt/data/")
 
@@ -47,7 +47,7 @@ def netcdf_to_pgsql(table_name, db_name, db_user, srid, chunk_size=1000):
     pg_hook = PostgresHook(postgres_conn_id="oceexp-db")
 
     try:
-        logging.info("Executing SQL statements...")
+        logging.info("Executing SQL statements for raster extension...")
         pg_hook.run(sql_statements, autocommit=True)
         logging.info("SQL execution completed successfully, confirmed raster extension")
     except Exception as e:
