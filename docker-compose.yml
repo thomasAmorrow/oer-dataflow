@@ -269,7 +269,7 @@ services:
         condition: service_completed_successfully
 
   spark-master: 
-    image: apache/spark-py:latest
+    image: spark:3.5.5-scala2.12-java17-ubuntu
     container_name: spark-master 
     ports: 
       - "9090:8080"
@@ -283,7 +283,7 @@ services:
       - ./sparkdata:/opt/spark-data
 
   spark-worker-a: 
-    image: apache/spark-py:latest
+    image: spark:3.5.5-scala2.12-java17-ubuntu
     container_name: spark-worker-a
     ports: 
       - "9090:8080"
@@ -304,7 +304,7 @@ services:
       - ./sparkdata:/opt/spark-data
 
   spark-worker-b: 
-    image: apache/spark-py:latest
+    image: spark:3.5.5-scala2.12-java17-ubuntu
     container_name: spark-worker-b
     ports: 
       - "9090:8080"
