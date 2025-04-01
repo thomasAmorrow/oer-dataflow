@@ -10,7 +10,6 @@ from airflow.operators.python_operator import PythonOperator
 from datetime import datetime, timedelta
 
 
-
 def fetch_OBIS_table():
     #filename = '/mnt/data/obis.zip'
     url = 'https://obis-datasets.s3.us-east-1.amazonaws.com/exports/obis_20250318_tsv.zip'
@@ -71,6 +70,15 @@ default_args = {
     'retries': 0,
     'retry_delay': timedelta(minutes=5),
 }
+
+dag = DAG(
+    'dataset_ETL_OBIS_eDNA',
+    default_args=default_args,
+    description='Fetch occurrences from OBIS, save to PostgreSQL, assign hexes',
+    schedule_interval=None,
+    start_date=datetime(2025, 3, 13),
+    catchup=False,
+)
 
 fetch_OBIS_query_table = PythonOperator(
     task_id='fetch_OBIS_query_table',
