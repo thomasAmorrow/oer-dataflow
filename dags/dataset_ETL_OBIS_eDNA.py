@@ -20,12 +20,13 @@ def fetch_OBIS_table():
         with zipfile.ZipFile(filename, "r") as zip_ref:
             zip_ref.extract("occurrence.tsv","/mnt/data/")
 
-def load_OBIS_table(input_file):
+def load_OBIS_table():
     # Check if the file exists before processing
     if not os.path.exists(input_file):
         logging.info(f"Input file {input_file} not found.")
         #raise Exception(f"Input file {input_file} not found.")
 
+    input_file = '/mnt/data/occurrence.tsv'
     output_file = '/mnt/data/cleaned_OBIS.csv'
     
     # clean tsv
@@ -89,7 +90,7 @@ fetch_OBIS_query_table = PythonOperator(
 
 load_OBIS_table = PythonOperator(
      task_id='load_OBIS_table',
-     python_callable=load_OBIS_table('occurrence.tsv'),
+     python_callable=load_OBIS_table,
      provide_context=True,
     dag=dag
 )
