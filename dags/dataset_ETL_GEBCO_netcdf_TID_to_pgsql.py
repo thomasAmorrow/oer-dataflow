@@ -41,6 +41,7 @@ def netcdf_to_pgsql(table_name, db_name, db_user, srid, chunk_size=1000):
     sql_statements="""
     CREATE EXTENSION IF NOT EXISTS postgis;
     CREATE EXTENSION IF NOT EXISTS postgis_raster;
+    DROP TABLE IF EXISTS gebco_2024;
     """
 
      # Initialize PostgresHook
