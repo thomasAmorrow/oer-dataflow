@@ -285,7 +285,7 @@ def load_GLODAP_table():
             chlaf, 
             doi
         )
-        FROM '/var/lib/postgresql/data/cleaned_NR50.csv'
+        FROM '/var/lib/postgresql/data/GLODAP_cleaned.csv'
         WITH (FORMAT csv, HEADER true, QUOTE '"'); 
     """
 
