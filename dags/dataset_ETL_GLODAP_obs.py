@@ -66,7 +66,7 @@ def load_GLODAP_table():
             cruise,
             station,
             region,
-            cast,
+            castnumber,
             year,
             month,
             day,
