@@ -93,8 +93,6 @@ def netcdf_to_pgsql(table_name, db_name, db_user, srid, chunk_size=1000):
         cursor.close()
         conn.close()
 
-
-
 def assign_gebcoTID_hex():
     """Assign hexes to GEBCO data."""
     sql_statements = """
@@ -202,4 +200,4 @@ assign_hexes_to_gebco_task = PythonOperator(
 
 # DAG task dependencies
 #download_and_unzip_task >> netcdf_to_pgsql_task >> assign_hexes_to_gebco_task
-download_and_unzip_task >> netcdf_to_pgsql_task
+download_and_unzip_task >> netcdf_to_pgsql_task >> assign_hexes_to_gebco_task

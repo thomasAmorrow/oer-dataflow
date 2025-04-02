@@ -11,3 +11,4 @@ echo -e "AIRFLOW_UID=$(id -u)" > .env
 
 #AWS issues
 echo "fs.inotify.max_user_watches=1048576" >> /etc/sysctl.conf sysctl -p
+sudo usermod -aG docker ssm-user

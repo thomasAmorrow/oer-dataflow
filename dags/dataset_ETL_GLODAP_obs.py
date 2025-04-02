@@ -285,7 +285,8 @@ def load_GLODAP_table():
             doi
         )
         FROM '/var/lib/postgresql/data/GLODAP_cleaned.csv'
-        WITH (FORMAT csv, HEADER true); 
+        WITH (FORMAT csv, HEADER true);
+
     """
 
     try:
