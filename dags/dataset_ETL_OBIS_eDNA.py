@@ -4,11 +4,13 @@ import csv
 import wget
 import zipfile
 import os
+import sys
 from airflow import DAG
 from airflow.providers.postgres.hooks.postgres import PostgresHook
 from airflow.operators.python_operator import PythonOperator
 from datetime import datetime, timedelta
 
+csv.field_size_limit(sys.maxsize)
 
 def fetch_OBIS_table():
     #filename = '/mnt/data/obis.zip'
