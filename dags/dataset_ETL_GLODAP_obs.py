@@ -299,6 +299,26 @@ def load_GLODAP_table():
     logging.info("Cleaning up csv...")
     os.remove("/mnt/data/GLODAPv2.2023_Merged_Master_File.csv")
 
+def assign_GLODAP_hex():
+    # revise for higher resolution in production
+    sql_statements = """
+        ALTER TABLE glodap ADD COLUMN location GEOMETRY(point, 4326);
+        UPDATE glodap SET location = ST_SETSRID(ST_MakePoint(cast(longitude as float), cast(latitude as float)),4326);
+
+        ALTER TABLE glodap ADD COLUMN hex_05 H3INDEX;
+        UPDATE glodap SET hex_05 = H3_LAT_LNG_TO_CELL(location, 5);
+    """
+     # Initialize PostgresHook
+    pg_hook = PostgresHook(postgres_conn_id="oceexp-db")
+
+    try:
+        logging.info("Executing SQL statements to assign hexes...")
+        pg_hook.run(sql_statements, autocommit=True)
+        logging.info("SQL execution completed successfully!")
+    except Exception as e:
+        logging.error(f"SQL execution failed: {e}")
+        raise
+
 # Default arguments for DAG
 default_args = {
     'owner': 'airflow',
@@ -332,5 +352,11 @@ load_cleaned_GLODAP_table = PythonOperator(
     dag=dag
 )
 
+assign_hexes_to_GLODAP= PythonOperator(
+    task_id='assign_hexes_to_GLODAP',
+    python_callable=assign_GLODAP_hex,
+    provide_context=True,
+    dag=dag
+)
 # Define task dependencies
-fetch_clean_GLODAP_table >> load_cleaned_GLODAP_table
+fetch_clean_GLODAP_table >> load_cleaned_GLODAP_table >> assign_hexes_to_GLODAP
