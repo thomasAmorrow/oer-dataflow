@@ -32,7 +32,7 @@ def process_chunk(chunk, writer):
             # Check if the number of fields is 282
             if len(row) == 282:
                 # Check if columns 42, 43, or 45 are empty
-                if not row[41] or not row[42] or not row[44] or row[44] < 200:
+                if not row[41] or not row[42] or not row[44] or float(row[44]) < 200:
                     continue  # Skip row if any of these columns are empty
 
                 # Process the row (if needed)
