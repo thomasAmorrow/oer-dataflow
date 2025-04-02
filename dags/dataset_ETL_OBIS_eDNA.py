@@ -14,6 +14,7 @@ csv.field_size_limit(sys.maxsize)
 
 def fetch_OBIS_table():
     #filename = '/mnt/data/obis.zip'
+    logging.info('Downloading OBIS table...')
     url = 'https://obis-datasets.s3.us-east-1.amazonaws.com/exports/obis_20250318_tsv.zip'
     filename = wget.download(url)
 
