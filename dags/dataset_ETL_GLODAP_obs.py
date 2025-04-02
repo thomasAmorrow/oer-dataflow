@@ -37,7 +37,6 @@ def fetch_GLODAP_table():
                     if len(row) == 109:
                         # Create a new row with quotes around most fields, except for fields 22 and 23
                         processed_row = [
-                            'NULL' if field == '-9999' else field
                             for index, field in enumerate(row)
                         ]
                         # Write the processed row to the output file
@@ -286,7 +285,7 @@ def load_GLODAP_table():
             doi
         )
         FROM '/var/lib/postgresql/data/GLODAP_cleaned.csv'
-        WITH (FORMAT csv, HEADER true, QUOTE '"'); 
+        WITH (FORMAT csv, Header true, NULL '-9999');
     """
 
     try:
