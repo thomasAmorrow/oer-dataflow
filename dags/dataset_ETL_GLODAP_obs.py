@@ -51,6 +51,10 @@ def fetch_GLODAP_table():
 
 
 def load_GLODAP_table():
+
+    # Initialize PostgresHook
+    pg_hook = PostgresHook(postgres_conn_id="oceexp-db")
+
     sql_statements = """
         CREATE EXTENSION IF NOT EXISTS h3;
         CREATE EXTENSION IF NOT EXISTS h3_postgis CASCADE;
