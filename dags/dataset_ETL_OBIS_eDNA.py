@@ -109,8 +109,8 @@ fetch_OBIS_query_table = PythonOperator(
     dag=dag
 )
 
-load_OBIS_table = PythonOperator(
-     task_id='load_OBIS_table',
+load_cleaned_OBIS_table = PythonOperator(
+     task_id='load_cleaned_OBIS_table',
      python_callable=load_OBIS_table,
      provide_context=True,
     dag=dag
@@ -118,4 +118,4 @@ load_OBIS_table = PythonOperator(
 
 # Define task dependencies
 #fetch_OBIS_query_table >> load_OBIS_table >> assign_hexes_to_OBIS
-fetch_OBIS_query_table >> load_OBIS_table 
+fetch_OBIS_query_table >> load_cleaned_OBIS_table
