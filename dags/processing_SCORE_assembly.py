@@ -41,14 +41,9 @@ create_SCORE_table= PostgresOperator(
     ADD COLUMN mapping_score FLOAT;
 
     UPDATE ega_score_05
-    SET mapping_score = CASE
-                        WHEN m.val BETWEEN 10 AND 17 THEN 1
-                        WHEN m.val > 17 THEN 0.1
-                        ELSE 0
-                    END
-    FROM ega_score_05 s
-    LEFT JOIN gebco_tid_hex m
-    ON s.hex_05 = m.hex_05;
+    SET mapping_score = 1
+    FROM gebco_tid_hex
+    WHERE ega_score_05.hex_05 = gebco_tid_hex.hex_05 AND gebco_tid_hex.val BETWEEN 9 AND 18;
 
 
     ALTER TABLE ega_score_05

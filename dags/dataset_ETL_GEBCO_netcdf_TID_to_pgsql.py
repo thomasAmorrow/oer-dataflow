@@ -119,7 +119,7 @@ def assign_gebcoTID_hex():
 
         DROP TABLE IF EXISTS gebco_tid_hex;
         CREATE TABLE gebco_tid_hex (
-            hex_05 H3INDEX,
+            hex_05 H3INDEX PRIMARY KEY,
             val INT
         );
 
@@ -135,6 +135,9 @@ def assign_gebcoTID_hex():
         FROM gebco_2024_polygons,
         LATERAL h3_polygon_to_cells(polygon, 5) AS hex_05
         WHERE val NOT IN (10, 11, 12, 13, 14, 15, 16, 17);
+
+        ALTER TABLE gebco_tid_hex
+        ADD PRIMARY KEY (hex_05)
 
     """
 
