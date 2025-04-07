@@ -302,10 +302,10 @@ def load_GLODAP_table():
 def assign_GLODAP_hex():
     # revise for higher resolution in production
     sql_statements = """
-        ALTER TABLE glodap ADD COLUMN location GEOMETRY(point, 4326);
+        ALTER TABLE glodap ADD COLUMN IF NOT EXISTS location GEOMETRY(point, 4326);
         UPDATE glodap SET location = ST_SETSRID(ST_MakePoint(cast(longitude as float), cast(latitude as float)),4326);
 
-        ALTER TABLE glodap ADD COLUMN hex_05 H3INDEX;
+        ALTER TABLE glodap ADD COLUMN IF NOT EXISTS hex_05 H3INDEX;
         UPDATE glodap SET hex_05 = H3_LAT_LNG_TO_CELL(location, 5);
     """
      # Initialize PostgresHook
