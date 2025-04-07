@@ -20,20 +20,20 @@ default_args = {
 dag = DAG(
     'processing_SCORE_assembly',
     default_args=default_args,
-    description='DAG to download, process, and save OSM water hexagons',
+    description='DAG to assemble exploration gap scores from observations',
     schedule_interval=None,  # Trigger manually or modify as needed
     start_date=datetime(2025, 3, 13),
     catchup=False,
 )
 
-# Task: Create the h3_children table
+# Task: Create the scores table
 create_SCORE_table= PostgresOperator(
     task_id='create_SCORE_table',
     postgres_conn_id='oceexp-db',  # Define your connection ID
     sql="""
     DROP TABLE IF EXISTS ega_score_05
 
-    CREATE TABLE ega_score_05 AS
+    CREATE TABLE IF NOT EXISTS ega_score_05 AS
     SELECT hex_05
     FROM h3_oceans;
 
@@ -71,10 +71,7 @@ assemble_scores= PostgresOperator(
     task_id='assemble_scores',
     postgres_conn_id='oceexp-db',  # Define your connection ID
     sql="""
-        UPDATE ega_score_05
-        SET chemistry_score = 1
-        FROM glodap
-        WHERE ega_score_05.hex_05 = glodap.hex_05;
+
     """,
 )
 

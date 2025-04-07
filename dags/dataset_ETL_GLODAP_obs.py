@@ -170,7 +170,7 @@ def load_GLODAP_table():
             doi TEXT
         );
 
-        TRUNCATE glodap
+        TRUNCATE glodap;
 
         COPY glodap (
             expocode,
