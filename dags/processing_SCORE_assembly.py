@@ -31,7 +31,7 @@ create_SCORE_table= PostgresOperator(
     task_id='create_SCORE_table',
     postgres_conn_id='oceexp-db',  # Define your connection ID
     sql="""
-    DROP TABLE IF EXISTS ega_score_05
+    DROP TABLE IF EXISTS ega_score_05;
 
     CREATE TABLE IF NOT EXISTS ega_score_05 AS
     SELECT hex_05
@@ -45,6 +45,10 @@ create_SCORE_table= PostgresOperator(
     FROM gebco_tid_hex
     WHERE ega_score_05.hex_05 = gebco_tid_hex.hex_05 AND gebco_tid_hex.val BETWEEN 9 AND 18;
 
+    UPDATE ega_score_05
+    SET mapping_score = 0.1
+    FROM gebco_tid_hex
+    WHERE ega_score_05.hex_05 = gebco_tid_hex.hex_05 AND gebco_tid_hex.val BETWEEN 39 AND 47;
 
     ALTER TABLE ega_score_05
     ADD COLUMN occurrence_score FLOAT;
@@ -60,21 +64,26 @@ create_SCORE_table= PostgresOperator(
     UPDATE ega_score_05
     SET chemistry_score = 1
     FROM glodap
-    WHERE ega_score_05.hex_05 = glodap.hex_05 
+    WHERE ega_score_05.hex_05 = glodap.hex_05
 
     )
     """,
 )
 
 # Task: Create the h3_children table
-assemble_scores= PostgresOperator(
-    task_id='assemble_scores',
+combine_scores= PostgresOperator(
+    task_id='combine_scores',
     postgres_conn_id='oceexp-db',  # Define your connection ID
     sql="""
+        ALTER TABLE ega_score_05
+        ADD COLUMN combined_score FLOAT;
+
+        UPDATE ega_score_05
+        SET combined_score = (COALESCE(mapping_score, 0) + COALESCE(occurrence_score, 0) + COALESCE(chemistry_score, 0)) / 3;
 
     """,
 )
 
 
 # Define task dependencies
-create_SCORE_table
+create_SCORE_table >> combine scores

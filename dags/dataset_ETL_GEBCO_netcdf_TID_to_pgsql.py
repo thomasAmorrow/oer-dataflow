@@ -125,10 +125,9 @@ def assign_gebcoTID_hex():
         SELECT hex_05, val
         FROM gebco_2024_polygons,
         LATERAL h3_polygon_to_cells(polygon, 5) AS hex_05
-        WHERE val IN (10, 11, 12, 13, 14, 15, 16, 17)
+        WHERE val IN (10, 11, 12, 13, 14, 15, 16, 17);
 
-        UNION ALL
-
+        INSERT INTO gebco_tid_hex (hex_05, val)
         SELECT hex_05, val
         FROM gebco_2024_polygons,
         LATERAL h3_polygon_to_cells(polygon, 5) AS hex_05
