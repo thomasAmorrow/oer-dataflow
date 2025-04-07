@@ -41,7 +41,6 @@ def netcdf_to_pgsql(table_name, db_name, db_user, srid, chunk_size=1000):
     sql_statements="""
     CREATE EXTENSION IF NOT EXISTS postgis;
     CREATE EXTENSION IF NOT EXISTS postgis_raster;
-    DROP TABLE IF EXISTS gebco_2024;
     """
 
      # Initialize PostgresHook
@@ -96,15 +95,15 @@ def netcdf_to_pgsql(table_name, db_name, db_user, srid, chunk_size=1000):
 
 def assign_gebcoTID_hex():
     """Assign hexes to GEBCO data."""
-    sql_statements = """
-        DROP TABLE IF EXISTS gebco_2024_polygons;
-        
-        CREATE TABLE gebco_2024_polygons (
+    sql_statements = """        
+        CREATE TABLE IF NOT EXISTS gebco_2024_polygons (
             polygon_id SERIAL PRIMARY KEY,
             rid INTEGER,
             polygon GEOMETRY,
             val INTEGER
         );
+
+        TRUNCATE gebco_2024_polygons;
 
         INSERT INTO gebco_2024_polygons (rid, polygon, val)
         SELECT r.rid, d.geom AS polygon, d.val
@@ -115,11 +114,12 @@ def assign_gebcoTID_hex():
         CREATE EXTENSION IF NOT EXISTS h3;
         CREATE EXTENSION IF NOT EXISTS h3_postgis CASCADE;
 
-        DROP TABLE IF EXISTS gebco_tid_hex;
-        CREATE TABLE gebco_tid_hex (
-            hex_05 H3INDEX,
+        CREATE TABLE IF NOT EXISTS gebco_tid_hex (
+            hex_05 H3INDEX PRIMARY KEY,
             val INT
         );
+
+        TRUNCATE gebco_tid_hex;
 
         INSERT INTO gebco_tid_hex (hex_05, val)
         SELECT hex_05, val
@@ -133,9 +133,6 @@ def assign_gebcoTID_hex():
         FROM gebco_2024_polygons,
         LATERAL h3_polygon_to_cells(polygon, 5) AS hex_05
         WHERE val NOT IN (10, 11, 12, 13, 14, 15, 16, 17);
-
-        ALTER TABLE gebco_tid_hex
-        ADD PRIMARY KEY (hex_05)
 
     """
 
@@ -202,4 +199,4 @@ assign_hexes_to_gebco_task = PythonOperator(
 
 # DAG task dependencies
 #download_and_unzip_task >> netcdf_to_pgsql_task >> assign_hexes_to_gebco_task
-download_and_unzip_task >> netcdf_to_pgsql_task 
+download_and_unzip_task >> netcdf_to_pgsql_task >> assign_hexes_to_gebco_task
