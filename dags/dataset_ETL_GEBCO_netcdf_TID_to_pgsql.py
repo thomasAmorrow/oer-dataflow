@@ -202,4 +202,4 @@ assign_hexes_to_gebco_task = PythonOperator(
 
 # DAG task dependencies
 #download_and_unzip_task >> netcdf_to_pgsql_task >> assign_hexes_to_gebco_task
-download_and_unzip_task >> netcdf_to_pgsql_task >> assign_hexes_to_gebco_task
+download_and_unzip_task >> netcdf_to_pgsql_task 
