@@ -57,10 +57,8 @@ def load_GLODAP_table():
     sql_statements = """
         CREATE EXTENSION IF NOT EXISTS h3;
         CREATE EXTENSION IF NOT EXISTS h3_postgis CASCADE;
-
-        DROP TABLE IF EXISTS glodap;
-
-        CREATE TABLE glodap (
+        
+        CREATE TABLE IF NOT EXISTS glodap (
             expocode VARCHAR(255),
             cruise VARCHAR(255),
             station VARCHAR(255),
@@ -172,6 +170,7 @@ def load_GLODAP_table():
             doi TEXT
         );
 
+        TRUNCATE glodap
 
         COPY glodap (
             expocode,
