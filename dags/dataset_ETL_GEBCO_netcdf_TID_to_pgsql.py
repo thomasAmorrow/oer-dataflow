@@ -99,14 +99,12 @@ def assign_gebcoTID_hex():
     sql_statements = """
         DROP TABLE IF EXISTS gebco_2024_polygons;
         
-
         CREATE TABLE gebco_2024_polygons (
             polygon_id SERIAL PRIMARY KEY,
             rid INTEGER,
             polygon GEOMETRY,
             val INTEGER
         );
-
 
         INSERT INTO gebco_2024_polygons (rid, polygon, val)
         SELECT r.rid, d.geom AS polygon, d.val
@@ -119,7 +117,7 @@ def assign_gebcoTID_hex():
 
         DROP TABLE IF EXISTS gebco_tid_hex;
         CREATE TABLE gebco_tid_hex (
-            hex_05 H3INDEX PRIMARY KEY,
+            hex_05 H3INDEX,
             val INT
         );
 
