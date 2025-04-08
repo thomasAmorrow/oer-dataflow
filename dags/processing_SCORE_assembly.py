@@ -67,6 +67,7 @@ create_SCORE_table= PostgresOperator(
     WHERE ega_score_05.hex_05 = glodap.hex_05
 
     """,
+    dag=dag,
 )
 
 # Task: Create the h3_children table
@@ -81,6 +82,7 @@ combine_scores= PostgresOperator(
         SET combined_score = (COALESCE(mapping_score, 0) + COALESCE(occurrence_score, 0) + COALESCE(chemistry_score, 0)) / 3;
 
     """,
+    dag=dag,
 )
 
 
