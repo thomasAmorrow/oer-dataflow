@@ -66,7 +66,6 @@ create_SCORE_table= PostgresOperator(
     FROM glodap
     WHERE ega_score_05.hex_05 = glodap.hex_05
 
-    )
     """,
 )
 
