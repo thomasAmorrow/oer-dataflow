@@ -86,4 +86,4 @@ combine_scores= PostgresOperator(
 
 
 # Define task dependencies
-create_SCORE_table >> combine scores
+create_SCORE_table >> combine_scores
