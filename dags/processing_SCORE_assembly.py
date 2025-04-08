@@ -38,6 +38,9 @@ create_SCORE_table= PostgresOperator(
     FROM h3_oceans;
 
     ALTER TABLE ega_score_05
+    ADD PRIMARY KEY (hex_05);
+
+    ALTER TABLE ega_score_05
     ADD COLUMN mapping_score FLOAT;
 
     UPDATE ega_score_05
