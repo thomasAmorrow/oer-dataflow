@@ -140,7 +140,6 @@ create_h3_primary = PostgresOperator(
         CREATE EXTENSION IF NOT EXISTS h3;
         CREATE EXTENSION IF NOT EXISTS h3_postgis CASCADE;
         DROP TABLE IF EXISTS h3_oceans;
-        DROP TABLE IF EXISTS h3_oceans;
 
         CREATE TABLE h3_oceans AS
         SELECT
