@@ -10,7 +10,7 @@ import os
 
 def download_and_unzip(url):
     """Download the ZIP file, extract contents, and return the extracted directory path."""
-    zip_path = "/mnt/data/gebco_2024.zip"
+    zip_path = "/mnt/bucket/gebco_2024.zip"
 
     response = requests.get(url, stream=True)
     response.raise_for_status()
@@ -20,15 +20,15 @@ def download_and_unzip(url):
             f.write(chunk)
 
     with zipfile.ZipFile(zip_path, "r") as zip_ref:
-        zip_ref.extract("GEBCO_2024_TID.nc","/mnt/data/")
+        zip_ref.extract("GEBCO_2024_TID.nc","/mnt/bucket/")
 
-    logging.info("Extracted files to: /mnt/data/")
+    logging.info("Extracted files to: /mnt/bucket/")
 
 
 def netcdf_to_pgsql(table_name, db_name, db_user, srid, chunk_size=1000):
     """Loads a raster file into a PostgreSQL/PostGIS database using raster2pgsql with chunking."""
-    file_path = "/mnt/data/GEBCO_2024_TID.nc"
-    sql_file_path = "/mnt/data/gebco_2024.sql"
+    file_path = "/mnt/bucket/GEBCO_2024_TID.nc"
+    sql_file_path = "/mnt/bucket/gebco_2024.sql"
     
     logging.info('Creating SQL file...')
     # Create the SQL file using raster2pgsql

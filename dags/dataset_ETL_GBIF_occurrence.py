@@ -31,7 +31,7 @@ def fetch_GBIF_table(**kwargs):
     if retries < 6:
         try:
             logging.info("Downloading occurrence data...")
-            occ.download_get(key=occdatakey, path="/mnt/data")
+            occ.download_get(key=occdatakey, path="/mnt/bucket")
         except Exception as e:
             retries += 1
             delay = 60 * min(2 ** retries, 32)  # Exponential backoff with a maximum of 32 minutes
@@ -40,18 +40,18 @@ def fetch_GBIF_table(**kwargs):
         logging.info("Failed download, too many tries")
 
 
-    logging.info(f"Looking for /mnt/data/{occdatakey}.zip...")
+    logging.info(f"Looking for /mnt/bucket/{occdatakey}.zip...")
 
-    if os.path.exists(f"/mnt/data/{occdatakey}.zip"):
+    if os.path.exists(f"/mnt/bucket/{occdatakey}.zip"):
         logging.info("Download successful!")
-        with zipfile.ZipFile(f"/mnt/data/{occdatakey}.zip", "r") as zip_ref:
-            zip_ref.extractall("/mnt/data/")
+        with zipfile.ZipFile(f"/mnt/bucket/{occdatakey}.zip", "r") as zip_ref:
+            zip_ref.extractall("/mnt/bucket/")
 
         logging.info(f"Key successfully identified as {occdatakey}")
 
         # Input and output file paths
-        input_file = f"/mnt/data/{occdatakey}.csv"
-        output_file = '/mnt/data/cleaned_NR50.csv'
+        input_file = f"/mnt/bucket/{occdatakey}.csv"
+        output_file = '/mnt/bucket/cleaned_NR50.csv'
 
         # Check if the file exists before processing
         if not os.path.exists(input_file):
@@ -85,8 +85,8 @@ def fetch_GBIF_table(**kwargs):
         
         logging.info("Finished cleaning file, cleanup started...")
 
-        os.remove(f"/mnt/data/{occdatakey}.csv")
-        os.remove(f"/mnt/data/{occdatakey}.zip")
+        os.remove(f"/mnt/bucket/{occdatakey}.csv")
+        os.remove(f"/mnt/bucket/{occdatakey}.zip")
 
 
 def load_GBIF_table_csv():
@@ -201,7 +201,7 @@ def load_GBIF_table_csv():
             mediatype,
             issue
         )
-        FROM '/var/lib/postgresql/data/cleaned_NR50.csv'
+        FROM '/mnt/bucket/cleaned_NR50.csv'
         WITH (FORMAT csv, HEADER true, DELIMITER E'\t', QUOTE '"'); 
     """
 
@@ -217,7 +217,7 @@ def load_GBIF_table_csv():
         raise
 
     logging.info("Cleaning up csv...")
-    os.remove("/mnt/data/cleaned_NR50.csv")
+    os.remove("/mnt/bucket/cleaned_NR50.csv")
 
 def assign_GBIF_hex():
     # revise for higher resolution in production

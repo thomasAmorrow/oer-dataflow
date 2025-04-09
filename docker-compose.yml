@@ -55,7 +55,8 @@ services:
       POSTGRES_PASSWORD: ${OCEEXP_POSTGRES_PASSWORD}
       POSTGRES_DB: ${OCEEXP_POSTGRES_DB}
     volumes:
-      - ./data:/var/lib/postgresql/data
+      - ./bucket:/mnt/bucket
+      - ./database:/var/lib/postgresql/data
     healthcheck:
       test: ["CMD", "pg_isready", "-U", "admin"]
       interval: 10s
@@ -153,7 +154,7 @@ services:
       - ${AIRFLOW_PROJ_DIR:-.}/logs:/opt/airflow/logs
       - ${AIRFLOW_PROJ_DIR:-.}/config:/opt/airflow/config
       - ${AIRFLOW_PROJ_DIR:-.}/plugins:/opt/airflow/plugins
-      - ./data:/mnt/data  # Mount the shared volume at /mnt/data in the worker container
+      - ./bucket:/mnt/bucket  # Mount the shared volume in the worker container
     restart: always
     depends_on:
       <<: *airflow-common-depends-on

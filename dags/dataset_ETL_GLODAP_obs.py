@@ -18,10 +18,10 @@ def fetch_GLODAP_table():
 
     if os.path.exists(filename):
         logging.info("Download successful!")
-        shutil.move("./GLODAPv2.2023_Merged_Master_File.csv", "/mnt/data/GLODAPv2.2023_Merged_Master_File.csv")
+        shutil.move("./GLODAPv2.2023_Merged_Master_File.csv", "/mnt/bucket/GLODAPv2.2023_Merged_Master_File.csv")
 
-        input_file="/mnt/data/GLODAPv2.2023_Merged_Master_File.csv"
-        output_file="/mnt/data/GLODAP_cleaned.csv"
+        input_file="/mnt/bucket/GLODAPv2.2023_Merged_Master_File.csv"
+        output_file="/mnt/bucket/GLODAP_cleaned.csv"
 
         with open(input_file, 'r', newline='', encoding='utf-8') as infile, \
             open(output_file, 'w', newline='', encoding='utf-8') as outfile:
@@ -283,7 +283,7 @@ def load_GLODAP_table():
             chlaf, 
             doi
         )
-        FROM '/var/lib/postgresql/data/GLODAP_cleaned.csv'
+        FROM '/mnt/bucket/GLODAP_cleaned.csv'
         WITH (FORMAT csv, HEADER true);
 
     """
@@ -297,7 +297,7 @@ def load_GLODAP_table():
         raise
 
     logging.info("Cleaning up csv...")
-    os.remove("/mnt/data/GLODAPv2.2023_Merged_Master_File.csv")
+    os.remove("/mnt/bucket/GLODAPv2.2023_Merged_Master_File.csv")
 
 def assign_GLODAP_hex():
     # revise for higher resolution in production
