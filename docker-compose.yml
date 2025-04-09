@@ -61,12 +61,12 @@ services:
       interval: 10s
       retries: 5
       start_period: 5s
-        #deploy:
-      #resources:
+    deploy:
+      resources:
         #limits:
           # cpus: "4.0"  # Limit CPU usage to 4 cores
-          #reservations:
-          # cpus: "2.0"  # Reserve 2 CPUs to ensure availability
+        reservations:
+          cpus: "4.0"  # Reserve 4 CPUs to ensure availability
 
   pgadmin:
     image: dpage/pgadmin4
@@ -131,12 +131,12 @@ services:
     <<: *airflow-common
     command: celery worker
     scale: 1
-      #deploy:
-      #resources:
+    deploy:
+      resources:
         #limits:
           #cpus: "4.0"  # Allocate 4 CPUs for the single worker
-          #reservations:
-          #cpus: "2.0"  # Reserve 2 CPUs for the worker to ensure it has sufficient resources
+        reservations:
+          cpus: "2.0"  # Reserve 2 CPUs for the worker to ensure it has sufficient resources
     healthcheck:
       test:
         - "CMD-SHELL"
@@ -148,6 +148,12 @@ services:
     environment:
       <<: *airflow-common-env
       DUMB_INIT_SETSID: "0"
+    volumes:
+      - ${AIRFLOW_PROJ_DIR:-.}/dags:/opt/airflow/dags
+      - ${AIRFLOW_PROJ_DIR:-.}/logs:/opt/airflow/logs
+      - ${AIRFLOW_PROJ_DIR:-.}/config:/opt/airflow/config
+      - ${AIRFLOW_PROJ_DIR:-.}/plugins:/opt/airflow/plugins
+      - ./data:/mnt/data  # Mount the shared volume at /mnt/data in the worker container
     restart: always
     depends_on:
       <<: *airflow-common-depends-on
@@ -266,3 +272,4 @@ volumes:
   postgres-db-volume:
   oceexp-db-volume:
   pgadmin-data:
+  airflow-worker-volume:
