@@ -24,6 +24,9 @@ def download_and_unzip(url):
 
     logging.info("Extracted files to: /mnt/bucket/")
 
+    # cleanup
+    os.remove(zip_path)
+
 
 def netcdf_to_pgsql(table_name, db_name, db_user, srid, chunk_size=1000):
     """Loads a raster file into a PostgreSQL/PostGIS database using raster2pgsql with chunking."""
@@ -94,6 +97,10 @@ def netcdf_to_pgsql(table_name, db_name, db_user, srid, chunk_size=1000):
         # Ensure cursor and connection are closed
         cursor.close()
         conn.close()
+
+    # cleanup
+    os.remove(file_path)
+    os.remove(sql_file_path)
 
 def assign_gebcoTID_hex():
     """Assign hexes to GEBCO data."""
