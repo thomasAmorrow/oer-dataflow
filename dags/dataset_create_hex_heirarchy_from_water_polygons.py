@@ -71,7 +71,7 @@ def process_and_identify_hexagons(extracted_folder, output_csv):
     waterhexes = set()  # Initialize an empty set to store unique hexes
     for geom in gdf.geometry:
         geojson = geom.__geo_interface__  # Convert the geometry to GeoJSON format
-        hexes = h3.geo_to_cells(geojson, 6)  # Adjust resolution as needed
+        hexes = h3.geo_to_cells(geojson, 5)  # Adjust resolution as needed
         waterhexes.update(hexes)  # Update the waterhexes set with the result
     
     # Write identified water hexagons to CSV
@@ -126,7 +126,7 @@ load_h3_task = PythonOperator(
     python_callable=load_h3_to_postgis,
     op_kwargs={
         'csv_path': OUTPUT_CSV,
-        'table_name': 'hex_ocean_polys_06',
+        'table_name': 'hex_ocean_polys_05',
         'postgres_conn_id': 'oceexp-db',
     },
     dag=dag,
@@ -145,13 +145,13 @@ create_h3_primary = PostgresOperator(
         SELECT
             hex_07
         FROM
-            hex_ocean_polys_06,
+            hex_ocean_polys_05,
             LATERAL H3_Cell_to_Children(CAST("h3_index" AS H3Index), 7) AS hex_07;
 
         ALTER TABLE h3_oceans
         ADD PRIMARY KEY (hex_07);
 
-        DROP TABLE IF EXISTS hex_ocean_polys_06; 
+        DROP TABLE IF EXISTS hex_ocean_polys_05; 
     """,
 )
 
