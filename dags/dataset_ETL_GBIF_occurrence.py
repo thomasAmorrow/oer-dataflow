@@ -226,7 +226,7 @@ def assign_GBIF_hex():
         UPDATE gbif_occurrences SET location = ST_SETSRID(ST_MakePoint(cast(decimallongitude as float), cast(decimallatitude as float)),4326);
 
         ALTER TABLE gbif_occurrences ADD COLUMN hex_07 H3INDEX;
-        UPDATE gbif_occurrences SET hex_06 = H3_LAT_LNG_TO_CELL(location, 7);
+        UPDATE gbif_occurrences SET hex_07 = H3_LAT_LNG_TO_CELL(location, 7);
     """
      # Initialize PostgresHook
     pg_hook = PostgresHook(postgres_conn_id="oceexp-db")
