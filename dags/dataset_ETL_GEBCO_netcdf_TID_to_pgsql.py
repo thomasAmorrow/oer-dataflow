@@ -131,7 +131,7 @@ def assign_gebcoTID_hex():
         TRUNCATE gebco_tid_hex;
 
         INSERT INTO gebco_tid_hex (hex_07, val)
-        SELECT hex_06, val
+        SELECT hex_07, val
         FROM gebco_2024_polygons,
         LATERAL h3_polygon_to_cells(polygon, 7) AS hex_07
         WHERE val IN (10, 11, 12, 13, 14, 15, 16, 17);
