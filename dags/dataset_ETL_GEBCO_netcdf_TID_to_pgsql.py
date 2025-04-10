@@ -124,22 +124,22 @@ def assign_gebcoTID_hex():
         CREATE EXTENSION IF NOT EXISTS h3_postgis CASCADE;
 
         CREATE TABLE IF NOT EXISTS gebco_tid_hex (
-            hex_06 H3INDEX PRIMARY KEY,
+            hex_07 H3INDEX PRIMARY KEY,
             val INT
         );
 
         TRUNCATE gebco_tid_hex;
 
-        INSERT INTO gebco_tid_hex (hex_06, val)
+        INSERT INTO gebco_tid_hex (hex_07, val)
         SELECT hex_06, val
         FROM gebco_2024_polygons,
-        LATERAL h3_polygon_to_cells(polygon, 6) AS hex_06
+        LATERAL h3_polygon_to_cells(polygon, 7) AS hex_07
         WHERE val IN (10, 11, 12, 13, 14, 15, 16, 17);
 
-        INSERT INTO gebco_tid_hex (hex_06, val)
-        SELECT hex_06, val
+        INSERT INTO gebco_tid_hex (hex_07, val)
+        SELECT hex_07, val
         FROM gebco_2024_polygons,
-        LATERAL h3_polygon_to_cells(polygon, 6) AS hex_06
+        LATERAL h3_polygon_to_cells(polygon, 7) AS hex_07
         WHERE val NOT IN (10, 11, 12, 13, 14, 15, 16, 17);
 
     """

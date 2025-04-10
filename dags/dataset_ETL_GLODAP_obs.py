@@ -305,8 +305,8 @@ def assign_GLODAP_hex():
         ALTER TABLE glodap ADD COLUMN IF NOT EXISTS location GEOMETRY(point, 4326);
         UPDATE glodap SET location = ST_SETSRID(ST_MakePoint(cast(longitude as float), cast(latitude as float)),4326);
 
-        ALTER TABLE glodap ADD COLUMN IF NOT EXISTS hex_06 H3INDEX;
-        UPDATE glodap SET hex_06 = H3_LAT_LNG_TO_CELL(location, 6);
+        ALTER TABLE glodap ADD COLUMN IF NOT EXISTS hex_07 H3INDEX;
+        UPDATE glodap SET hex_07 = H3_LAT_LNG_TO_CELL(location, 7);
     """
      # Initialize PostgresHook
     pg_hook = PostgresHook(postgres_conn_id="oceexp-db")

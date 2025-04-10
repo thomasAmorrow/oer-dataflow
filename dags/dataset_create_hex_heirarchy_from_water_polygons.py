@@ -71,7 +71,7 @@ def process_and_identify_hexagons(extracted_folder, output_csv):
     waterhexes = set()  # Initialize an empty set to store unique hexes
     for geom in gdf.geometry:
         geojson = geom.__geo_interface__  # Convert the geometry to GeoJSON format
-        hexes = h3.geo_to_cells(geojson, 5)  # Adjust resolution as needed
+        hexes = h3.geo_to_cells(geojson, 6)  # Adjust resolution as needed
         waterhexes.update(hexes)  # Update the waterhexes set with the result
     
     # Write identified water hexagons to CSV
@@ -143,15 +143,15 @@ create_h3_primary = PostgresOperator(
 
         CREATE TABLE h3_oceans AS
         SELECT
-            hex_06
+            hex_07
         FROM
-            hex_ocean_polys_05,
-            LATERAL H3_Cell_to_Children(CAST("h3_index" AS H3Index), 6) AS hex_06;
+            hex_ocean_polys_06,
+            LATERAL H3_Cell_to_Children(CAST("h3_index" AS H3Index), 7) AS hex_07;
 
         ALTER TABLE h3_oceans
-        ADD PRIMARY KEY (hex_06);
+        ADD PRIMARY KEY (hex_07);
 
-        DROP TABLE IF EXISTS hex_ocean_polys_05; 
+        DROP TABLE IF EXISTS hex_ocean_polys_06; 
     """,
 )
 
@@ -160,6 +160,9 @@ create_h3_lineage = PostgresOperator(
     task_id='create_h3_lineage',
     postgres_conn_id='oceexp-db',  # Define your connection ID
     sql="""
+        ALTER TABLE h3_oceans
+        ADD
+            hex_06 H3INDEX;
         ALTER TABLE h3_oceans
         ADD
             hex_05 H3INDEX;
@@ -189,22 +192,25 @@ fill_h3_lineage = PostgresOperator(
     sql="""
         UPDATE h3_oceans
         SET 
-            hex_05 = h3_cell_to_parent(hex_06, 5);
+            hex_06 = h3_cell_to_parent(hex_07, 6);
         UPDATE h3_oceans
         SET 
-            hex_04 = h3_cell_to_parent(hex_06, 4);
+            hex_05 = h3_cell_to_parent(hex_07, 5);
         UPDATE h3_oceans
         SET 
-            hex_03 = h3_cell_to_parent(hex_06, 3);
+            hex_04 = h3_cell_to_parent(hex_07, 4);
+        UPDATE h3_oceans
+        SET 
+            hex_03 = h3_cell_to_parent(hex_07, 3);
         UPDATE h3_oceans
         SET
-            hex_02 = h3_cell_to_parent(hex_06, 2);
+            hex_02 = h3_cell_to_parent(hex_07, 2);
         UPDATE h3_oceans
         SET
-            hex_01 = h3_cell_to_parent(hex_06, 1);
+            hex_01 = h3_cell_to_parent(hex_07, 1);
         UPDATE h3_oceans
         SET
-            hex_00 = h3_cell_to_parent(hex_06, 0);
+            hex_00 = h3_cell_to_parent(hex_07, 0);
     """,
 )
 
