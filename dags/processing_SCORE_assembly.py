@@ -84,6 +84,16 @@ combine_scores= PostgresOperator(
         UPDATE ega_score_05
         SET combined_score = (COALESCE(mapping_score, 0) + COALESCE(occurrence_score, 0) + COALESCE(chemistry_score, 0)) / 3;
 
+        ALTER TABLE ega_score_05
+        ADD COLUMN h3_boundary_geom geometry(Polygon, 4326);
+
+        UPDATE ega_score_05
+        SET h3_boundary_geom = ST_SetSRID(h3_cell_to_boundary(hex_05), 4326);
+
+        CREATE INDEX geom_idx
+        ON ega_score_05
+        USING GIST(h3_boundary_geom);
+
     """,
     dag=dag,
 )
