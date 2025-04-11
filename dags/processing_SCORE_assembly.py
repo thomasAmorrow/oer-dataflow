@@ -31,43 +31,43 @@ create_SCORE_table= PostgresOperator(
     task_id='create_SCORE_table',
     postgres_conn_id='oceexp-db',  # Define your connection ID
     sql="""
-    DROP TABLE IF EXISTS ega_score_06;
+    DROP TABLE IF EXISTS ega_score_05;
 
-    CREATE TABLE IF NOT EXISTS ega_score_06 AS
-    SELECT hex_06
+    CREATE TABLE IF NOT EXISTS ega_score_05 AS
+    SELECT hex_05
     FROM h3_oceans;
 
-    ALTER TABLE ega_score_06
-    ADD PRIMARY KEY (hex_06);
+    ALTER TABLE ega_score_05
+    ADD PRIMARY KEY (hex_05);
 
-    ALTER TABLE ega_score_06
+    ALTER TABLE ega_score_05
     ADD COLUMN mapping_score FLOAT;
 
-    UPDATE ega_score_06
+    UPDATE ega_score_05
     SET mapping_score = 1
     FROM gebco_tid_hex
-    WHERE ega_score_06.hex_06 = gebco_tid_hex.hex_06 AND gebco_tid_hex.val BETWEEN 9 AND 18;
+    WHERE ega_score_05.hex_05 = gebco_tid_hex.hex_05 AND gebco_tid_hex.val BETWEEN 9 AND 18;
 
-    UPDATE ega_score_06
+    UPDATE ega_score_05
     SET mapping_score = 0.1
     FROM gebco_tid_hex
-    WHERE ega_score_06.hex_06 = gebco_tid_hex.hex_06 AND gebco_tid_hex.val BETWEEN 39 AND 47;
+    WHERE ega_score_05.hex_05 = gebco_tid_hex.hex_05 AND gebco_tid_hex.val BETWEEN 39 AND 47;
 
-    ALTER TABLE ega_score_06
+    ALTER TABLE ega_score_05
     ADD COLUMN occurrence_score FLOAT;
 
-    UPDATE ega_score_06
+    UPDATE ega_score_05
     SET occurrence_score = 1
     FROM gbif_occurrences
-    WHERE ega_score_06.hex_06 = gbif_occurrences.hex_06;
+    WHERE ega_score_05.hex_05 = gbif_occurrences.hex_05;
 
-    ALTER TABLE ega_score_06
+    ALTER TABLE ega_score_05
     ADD COLUMN chemistry_score FLOAT;
 
-    UPDATE ega_score_06
+    UPDATE ega_score_05
     SET chemistry_score = 1
     FROM glodap
-    WHERE ega_score_06.hex_06 = glodap.hex_06
+    WHERE ega_score_05.hex_05 = glodap.hex_05
 
     """,
     dag=dag,
@@ -78,10 +78,10 @@ combine_scores= PostgresOperator(
     task_id='combine_scores',
     postgres_conn_id='oceexp-db',  # Define your connection ID
     sql="""
-        ALTER TABLE ega_score_06
+        ALTER TABLE ega_score_05
         ADD COLUMN combined_score FLOAT;
 
-        UPDATE ega_score_06
+        UPDATE ega_score_05
         SET combined_score = (COALESCE(mapping_score, 0) + COALESCE(occurrence_score, 0) + COALESCE(chemistry_score, 0)) / 3;
 
     """,
