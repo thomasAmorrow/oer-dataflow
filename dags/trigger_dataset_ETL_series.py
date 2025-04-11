@@ -5,14 +5,17 @@ from datetime import datetime, timedelta
 default_args = {
     'owner': 'airflow',
     'depends_on_past': False,
+    'email_on_failure': False,
+    'email_on_retry': False,
     'retries': 0,
     'retry_delay': timedelta(minutes=5),
 }
 
+
 with DAG(
     dag_id='trigger_dataset_ETL_series',
     default_args=default_args,
-    description='Triggers GLODAP -> GEBCO -> OSM Water Hexes DAGs in series',
+    description='Triggers GLODAP -> GEBCO -> GBIF ETLs in series',
     schedule_interval=None,  # Manual trigger only
     start_date=datetime(2025, 1, 1),
     catchup=False,
