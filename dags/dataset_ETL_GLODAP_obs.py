@@ -18,7 +18,7 @@ def fetch_GLODAP_table():
 
     if os.path.exists(filename):
         logging.info("Download successful!")
-        shutil.move("./GLODAPv2.2023_Merged_Master_File.csv", "/mnt/bucket/GLODAPv2.2023_Merged_Master_File.csv")
+        shutil.copyfile("./GLODAPv2.2023_Merged_Master_File.csv", "/mnt/bucket/GLODAPv2.2023_Merged_Master_File.csv")
 
         input_file="/mnt/bucket/GLODAPv2.2023_Merged_Master_File.csv"
         output_file="/mnt/bucket/GLODAP_cleaned.csv"
