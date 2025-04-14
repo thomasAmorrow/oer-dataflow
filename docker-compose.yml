@@ -269,14 +269,12 @@ services:
       airflow-init:
         condition: service_completed_successfully
 
-  leaflet-ui:
-    image: nginx:1.25
-    container_name: leaflet-ui
+  web:
+    image: nginx:alpine
     ports:
       - "8090:80"
     volumes:
-      - ./leaflet:/usr/share/nginx/html:ro
-    restart: always
+      - ./leaflet:/usr/share/nginx/html
 
 
 volumes:
