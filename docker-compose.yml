@@ -269,7 +269,7 @@ services:
       airflow-init:
         condition: service_completed_successfully
 
-  web:
+  webmap:
     image: nginx:alpine
     ports:
       - "8090:80"
