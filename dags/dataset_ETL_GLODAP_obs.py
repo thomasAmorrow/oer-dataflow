@@ -332,7 +332,7 @@ default_args = {
 dag = DAG(
     'dataset_ETL_GLODAP_obs',
     default_args=default_args,
-    description='Fetch occurrences from GLODAP, save to PostgreSQL, assign hexes',
+    description='Fetch observations from GLODAP, save to PostgreSQL, assign hexes',
     schedule_interval=None,
     start_date=datetime(2025, 3, 13),
     catchup=False,
