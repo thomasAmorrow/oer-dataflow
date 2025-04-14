@@ -274,7 +274,8 @@ services:
     ports:
       - "8090:80"
     volumes:
-      - ./leaflet:/usr/share/nginx/html
+      - ./build:/usr/share/nginx/html
+    restart: always
 
 
 volumes:

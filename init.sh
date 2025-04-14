@@ -15,3 +15,12 @@ sudo usermod -aG docker ssm-user
 
 sudo echo "user_allow_other" >> /etc/fuse.conf
 mount-s3 ega-data-XXXXXX /oer-ega/bucket --allow-other
+
+
+
+# Install npm dependencies
+echo "Installing npm dependencies..."
+sudo apt-get install npm
+npm init -y
+npm install react react-dom leaflet
+npx create-react-app .
