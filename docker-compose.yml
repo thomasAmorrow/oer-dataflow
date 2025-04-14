@@ -269,6 +269,16 @@ services:
       airflow-init:
         condition: service_completed_successfully
 
+  leaflet-ui:
+    image: nginx:1.25
+    container_name: leaflet-ui
+    ports:
+      - "8090:80"
+    volumes:
+      - ./leaflet:/usr/share/nginx/html:ro
+    restart: always
+
+
 volumes:
   postgres-db-volume:
   oceexp-db-volume:
