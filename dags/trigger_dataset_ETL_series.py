@@ -42,5 +42,11 @@ with DAG(
         reset_dag_run=True,
     )
 
+    trigger_imlgs = TriggerDagRunOperator(
+        task_id='trigger_imlgs_dag',
+        trigger_dag_id='dataset_ETL_IMLGS',
+        wait_for_completion=True,
+        reset_dag_run=True,
+    )
     # Set execution order: GLODAP -> GEBCO -> OSM
-    trigger_glodap >> trigger_gebco >> trigger_gbif
+    trigger_glodap >> trigger_gebco >> trigger_gbif >> trigger_imlgs
