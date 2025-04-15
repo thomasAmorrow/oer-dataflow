@@ -69,6 +69,14 @@ create_SCORE_table= PostgresOperator(
     FROM glodap
     WHERE ega_score_05.hex_05 = glodap.hex_05
 
+    ALTER TABLE ega_score_05
+    ADD COLUMN geology_score FLOAT;
+
+    UPDATE ega_score_05
+    SET geology_score = 1
+    FROM imlgs
+    WHERE ega_score_05.hex_05 = imlgs.hex_05
+
     """,
     dag=dag,
 )
