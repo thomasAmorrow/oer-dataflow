@@ -59,30 +59,30 @@ def load_IMLGS_table():
         CREATE EXTENSION IF NOT EXISTS h3_postgis CASCADE;
         
         CREATE TABLE IF NOT EXISTS imlgs (
-            repository VARCHAR(255),
-            platform VARCHAR(255),
-            cruiseID VARCHAR(255),
-            sampleID VARCHAR(255),
-            device VARCHAR(255),
-            date VARCHAR(255),
-            dateEnded VARCHAR(255),
+            repository VARCHAR,
+            platform VARCHAR,
+            cruiseID VARCHAR,
+            sampleID VARCHAR,
+            device VARCHAR,
+            date VARCHAR,
+            dateEnded VARCHAR,
             latitude FLOAT,
             endLatitude	FLOAT,
             longitude FLOAT,
             endLongitude FLOAT,
             depth FLOAT,
             endDepth FLOAT,
-            storage	VARCHAR(255),
+            storage	VARCHAR,
             coreLength_cm FLOAT,
             coreDiameter_cm FLOAT,
-            principalInv VARCHAR(255),
-            physiogProvince VARCHAR(255),
-            lake VARCHAR(255),
-            IGSN VARCHAR(255),
-            altCruiseID VARCHAR(255),
-            comments VARCHAR(255),
-            NCEIurl VARCHAR(255),
-            IMLGSnumber VARCHAR(255)
+            principalInv VARCHAR,
+            physiogProvince VARCHAR,
+            lake VARCHAR,
+            IGSN VARCHAR,
+            altCruiseID VARCHAR,
+            comments VARCHAR,
+            NCEIurl VARCHAR,
+            IMLGSnumber VARCHAR
         );
 
         TRUNCATE imlgs;
