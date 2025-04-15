@@ -90,7 +90,7 @@ combine_scores= PostgresOperator(
         ADD COLUMN combined_score FLOAT;
 
         UPDATE ega_score_05
-        SET combined_score = (COALESCE(mapping_score, 0) + COALESCE(occurrence_score, 0) + COALESCE(chemistry_score, 0)) / 3;
+        SET combined_score = (COALESCE(mapping_score, 0) + COALESCE(occurrence_score, 0) + COALESCE(chemistry_score, 0) + COALESCE(geology_score, 0)) / 4;
 
     """,
     dag=dag,
