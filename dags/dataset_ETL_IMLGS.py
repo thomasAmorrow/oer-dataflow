@@ -19,7 +19,7 @@ def fetch_IMLGS_table():
 
     if os.path.exists(filename):
         logging.info("Download successful!")
-        shutil.copyfile("./geosamples_export", "/mnt/bucket/IMLGS.csv")
+        shutil.copyfile("./geosamples_export.csv", "/mnt/bucket/IMLGS.csv")
 
         input_file="/mnt/bucket/IMLGS.csv"
         output_file="/mnt/bucket/IMLGS_cleaned.csv"
