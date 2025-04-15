@@ -83,7 +83,7 @@ def load_IMLGS_table():
             comments VARCHAR(255),
             NCEIurl VARCHAR(255),
             IMLGSnumber VARCHAR(255)
-        )
+        );
 
         TRUNCATE imlgs;
 
