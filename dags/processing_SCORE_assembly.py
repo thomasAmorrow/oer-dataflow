@@ -107,10 +107,10 @@ derez_scores_to_parents= PostgresOperator(
         WITH hex_04_stats AS (
             SELECT 
                 h3_cell_to_parent(hex_05, 4) AS hex_04,
-                SUM(mapping_score) AS mapping_score, 
-                SUM(occurrence_score) AS occurrence_score,
-                SUM(chemistry_score) AS chemistry_score,
-                SUM(geology_score) AS geology_score
+                SUM(mapping_score) AS mapping_score_sum, 
+                SUM(occurrence_score) AS occurrence_score_sum,
+                SUM(chemistry_score) AS chemistry_score_sum,
+                SUM(geology_score) AS geology_score_sum
             FROM ega_score_05
             GROUP BY h3_cell_to_parent(hex_05, 4)
         ),
@@ -129,10 +129,10 @@ derez_scores_to_parents= PostgresOperator(
         )
         SELECT 
             h.hex_04,
-            mapping_score / num_children AS mapping_score_norm,
-            occurrence_score / num_children AS occurrence_score_norm,
-            chemistry_score / num_children AS chemistry_score_norm,
-            geology_score / num_children AS geology_score_norm
+            mapping_score_sum / num_children AS mapping_score,
+            occurrence_score_sum / num_children AS occurrence_score,
+            chemistry_score_sum / num_children AS chemistry_score,
+            geology_score_sum / num_children AS geology_score
         FROM hex_04_stats h
         JOIN child_counts c ON h.hex_04 = c.hex_04;
 
@@ -145,10 +145,10 @@ derez_scores_to_parents= PostgresOperator(
         WITH hex_03_stats AS (
             SELECT 
                 h3_cell_to_parent(hex_05, 3) AS hex_03,
-                SUM(mapping_score) AS mapping_score, 
-                SUM(occurrence_score) AS occurrence_score,
-                SUM(chemistry_score) AS chemistry_score,
-                SUM(geology_score) AS geology_score
+                SUM(mapping_score) AS mapping_score_sum, 
+                SUM(occurrence_score) AS occurrence_score_sum,
+                SUM(chemistry_score) AS chemistry_score_sum,
+                SUM(geology_score) AS geology_score_sum
             FROM ega_score_05
             GROUP BY h3_cell_to_parent(hex_05, 3)
         ),
@@ -167,10 +167,10 @@ derez_scores_to_parents= PostgresOperator(
         )
         SELECT 
             h.hex_03,
-            mapping_score / num_children AS mapping_score_norm,
-            occurrence_score / num_children AS occurrence_score_norm,
-            chemistry_score / num_children AS chemistry_score_norm,
-            geology_score / num_children AS geology_score_norm
+            mapping_score_sum / num_children AS mapping_score,
+            occurrence_score_sum / num_children AS occurrence_score,
+            chemistry_score_sum / num_children AS chemistry_score,
+            geology_score_sum / num_children AS geology_score
         FROM hex_03_stats h
         JOIN child_counts c ON h.hex_03 = c.hex_03;
 
