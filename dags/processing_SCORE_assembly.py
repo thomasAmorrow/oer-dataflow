@@ -136,8 +136,14 @@ derez_scores_to_parents= PostgresOperator(
         FROM hex_04_stats h
         JOIN child_counts c ON h.hex_04 = c.hex_04;
 
+        ALTER TABLE ega_score_04
+        ADD COLUMN combined_score FLOAT;
+
         UPDATE ega_score_04
         SET combined_score = (COALESCE(mapping_score, 0) + COALESCE(occurrence_score, 0) + COALESCE(chemistry_score, 0) + COALESCE(geology_score, 0)) / 4;
+
+        ALTER TABLE ega_score_04
+        ADD PRIMARY KEY (hex_04);
 
         DROP TABLE IF EXISTS ega_score_03;
 
@@ -174,8 +180,14 @@ derez_scores_to_parents= PostgresOperator(
         FROM hex_03_stats h
         JOIN child_counts c ON h.hex_03 = c.hex_03;
 
+        ALTER TABLE ega_score_04
+        ADD COLUMN combined_score FLOAT;
+
         UPDATE ega_score_03
         SET combined_score = (COALESCE(mapping_score, 0) + COALESCE(occurrence_score, 0) + COALESCE(chemistry_score, 0) + COALESCE(geology_score, 0)) / 4;
+
+        ALTER TABLE ega_score_03
+        ADD PRIMARY KEY (hex_03);
     """,
     dag=dag
 )
