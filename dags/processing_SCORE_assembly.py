@@ -96,5 +96,83 @@ combine_primary_scores= PostgresOperator(
     dag=dag,
 )
 
+# Task: propagate scores upwards
+derez_scores_to_parents= PostgresOperator(
+    task_id='derez_scores_to_parents',
+    postgres_conn_id='oceexp-db',
+    sql="""
+        DROP TABLE IF EXISTS ega_score_04;
+
+        CREATE TABLE ega_score_04 AS
+        WITH hex_04_stats AS (
+            SELECT 
+                h3_cell_to_parent(hex_05, 4) AS hex_04,
+                SUM(mapping_score) AS mapping_score, 
+                SUM(occurrence_score) AS occurrence_score,
+                SUM(chemistry_score) AS chemistry_score,
+                SUM(geology_score) AS geology_score
+            FROM ega_score_05
+            GROUP BY h3_cell_to_parent(hex_05, 4)
+        ),
+        child_counts AS (
+            SELECT 
+                p.hex_04,
+                COUNT(child.hex) AS num_children
+            FROM (
+                SELECT DISTINCT h3_cell_to_parent(hex_05, 4) AS hex_04
+                FROM ega_score_05
+            ) AS p,
+            LATERAL (
+                SELECT h3_cell_to_children(p.hex_04, 5) AS hex
+            ) AS child
+            GROUP BY p.hex_04
+        )
+        SELECT 
+            h.hex_04,
+            mapping_score / num_children AS mapping_score_norm,
+            occurrence_score / num_children AS occurrence_score_norm,
+            chemistry_score / num_children AS chemistry_score_norm,
+            geology_score / num_children AS geology_score_norm
+        FROM hex_04_stats h
+        JOIN child_counts c ON h.hex_04 = c.hex_04;
+
+        DROP TABLE IF EXISTS ega_score_03;
+
+        CREATE TABLE ega_score_03 AS
+        WITH hex_03_stats AS (
+            SELECT 
+                h3_cell_to_parent(hex_05, 3) AS hex_03,
+                SUM(mapping_score) AS mapping_score, 
+                SUM(occurrence_score) AS occurrence_score,
+                SUM(chemistry_score) AS chemistry_score,
+                SUM(geology_score) AS geology_score
+            FROM ega_score_05
+            GROUP BY h3_cell_to_parent(hex_05, 3)
+        ),
+        child_counts AS (
+            SELECT 
+                p.hex_03,
+                COUNT(child.hex) AS num_children
+            FROM (
+                SELECT DISTINCT h3_cell_to_parent(hex_05, 3) AS hex_03
+                FROM ega_score_05
+            ) AS p,
+            LATERAL (
+                SELECT h3_cell_to_children(p.hex_03, 5) AS hex
+            ) AS child
+            GROUP BY p.hex_03
+        )
+        SELECT 
+            h.hex_03,
+            mapping_score / num_children AS mapping_score_norm,
+            occurrence_score / num_children AS occurrence_score_norm,
+            chemistry_score / num_children AS chemistry_score_norm,
+            geology_score / num_children AS geology_score_norm
+        FROM hex_03_stats h
+        JOIN child_counts c ON h.hex_03 = c.hex_03;
+    """,
+    dag=dag
+)
+
 # Define task dependencies
-create_primary_SCORE_table >> combine_primary_scores
+create_primary_SCORE_table >> combine_primary_scores >> derez_scores_to_parents
