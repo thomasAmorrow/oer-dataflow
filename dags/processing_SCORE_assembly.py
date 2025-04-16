@@ -180,7 +180,7 @@ derez_scores_to_parents= PostgresOperator(
         FROM hex_03_stats h
         JOIN child_counts c ON h.hex_03 = c.hex_03;
 
-        ALTER TABLE ega_score_04
+        ALTER TABLE ega_score_03
         ADD COLUMN combined_score FLOAT;
 
         UPDATE ega_score_03
