@@ -38,8 +38,8 @@ def generate_geojson():
     timestr = time.strftime("%Y%m%d-%H%M%S")
 
     rows = fetch_data_from_pg('05')
-    output_geojsonpoint = f'h3_points_05_{timestr}.geojson'
-    output_geojsonpoly = f'h3_hexagons_05_{timestr}.geojson'
+    output_geojsonpoint = f'/mnt/s3bucket/h3_points_05_{timestr}.geojson'
+    output_geojsonpoly = f'/mnt/s3bucket/h3_hexagons_05_{timestr}.geojson'
     featurespoly = []
     featurespoint = []
 
