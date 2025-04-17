@@ -38,8 +38,10 @@ def generate_geojson():
     timestr = time.strftime("%Y%m%d-%H%M%S")
 
     rows = fetch_data_from_pg('05')
-    output_geojsonpoint = f'/mnt/s3bucket/h3_points_05_{timestr}.geojson'
-    output_geojsonpoly = f'/mnt/s3bucket/h3_hexagons_05_{timestr}.geojson'
+   #output_geojsonpoint = f'/mnt/s3bucket/h3_points_05_{timestr}.geojson'
+   #output_geojsonpoly = f'/mnt/s3bucket/h3_hexagons_05_{timestr}.geojson'
+    output_geojsonpoint = f'/mnt/s3bucket/h3_points_05.geojson'
+    output_geojsonpoly = f'/mnt/s3bucket/h3_hexagons_05.geojson'
     featurespoly = []
     featurespoint = []
 
@@ -79,7 +81,7 @@ def generate_geojson():
             "type": "Feature",
             "geometry": {
                 "type": "Point",
-                "coordinates": [centroid_geo]
+                "coordinates": centroid_geo
             },
             "properties": {
                 "h3_index": h3_index,

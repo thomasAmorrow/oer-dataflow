@@ -13,10 +13,8 @@ echo -e "AIRFLOW_UID=$(id -u)" > .env
 echo "fs.inotify.max_user_watches=1048576" >> /etc/sysctl.conf sysctl -p
 sudo usermod -aG docker ssm-user
 
-sudo echo "user_allow_other" >> /etc/fuse.conf
-mount-s3 ega-data-XXXXXX /oer-ega/bucket --allow-other
-
-
+# s3 access read/write for bucket
+s3fs ega-data-development s3bucket -o iam_role=XXXXX -o allow_other # put this into fstab!
 
 # Install npm dependencies
 echo "Installing npm dependencies..."
