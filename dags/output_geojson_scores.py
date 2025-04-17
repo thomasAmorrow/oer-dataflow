@@ -54,7 +54,7 @@ def generate_geojson():
 
         # Convert to GeoJSON [lng, lat] order (flip back lat/lng)
         geojson_boundary = [[lng, lat] for lat, lng in geojson_boundary]
-        centroid_geo = [[lng, lat] for lat, lng in centroid]
+        centroid_geo = [centroid[1], centroid[0]]  # [lng, lat]
 
         # Wrap this in a GeoJSON feature
         featurepoly = {
