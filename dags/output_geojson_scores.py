@@ -6,6 +6,7 @@ from sqlalchemy import create_engine
 from airflow.providers.postgres.operators.postgres import PostgresOperator
 import h3
 import time
+import json
 
 # Function to adjust the longitude if it crosses the antimeridian
 def adjust_longitudes_if_crosses_antimeridian(boundary):
