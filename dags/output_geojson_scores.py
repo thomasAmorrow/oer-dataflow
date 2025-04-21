@@ -25,7 +25,7 @@ def fetch_data_from_pg(hexrez):
     pg_hook = PostgresHook(postgres_conn_id="oceexp-db")
     conn = pg_hook.get_conn()
     cursor = conn.cursor()
-    cursor.execute(f"SELECT hex_05, combined_score, mapping_score, occurrence_score, chemistry_score, geology_score FROM ega_score_{hexrez}")
+    cursor.execute(f"SELECT hex_{hexrez}, combined_score, mapping_score, occurrence_score, chemistry_score, geology_score FROM ega_score_{hexrez}")
     rows = cursor.fetchall()
     cursor.close()
     conn.close()
@@ -37,89 +37,90 @@ def generate_geojson():
 
     timestr = time.strftime("%Y%m%d-%H%M%S")
 
-    rows = fetch_data_from_pg('05')
-   #output_geojsonpoint = f'/mnt/s3bucket/h3_points_05_{timestr}.geojson'
-   #output_geojsonpoly = f'/mnt/s3bucket/h3_hexagons_05_{timestr}.geojson'
-    output_geojsonpoint = f'/mnt/s3bucket/h3_points_05.geojson'
-    output_geojsonpoly = f'/mnt/s3bucket/h3_hexagons_05.geojson'
-    featurespoly = []
-    featurespoint = []
+    for rez in ['03', '04', '05']:
+        rows = fetch_data_from_pg(rez)
+        #output_geojsonpoint = f'/mnt/s3bucket/h3_points_05_{timestr}.geojson'
+        #output_geojsonpoly = f'/mnt/s3bucket/h3_hexagons_05_{timestr}.geojson'
+        output_geojsonpoint = f'/mnt/s3bucket/h3_points_{rez}.geojson'
+        output_geojsonpoly = f'/mnt/s3bucket/h3_hexagons_{rez}.geojson'
+        featurespoly = []
+        featurespoint = []
 
-    for row in rows:
-        h3_index, combined_score, mapping_score, occurrence_score, chemistry_score, geology_score = row
+        for row in rows:
+            h3_index, combined_score, mapping_score, occurrence_score, chemistry_score, geology_score = row
 
-        # Get the boundary coordinates for the H3 cell
-        geo = h3.cell_to_boundary(h3_index)
-        centroid = h3.cell_to_latlng(h3_index)
+            # Get the boundary coordinates for the H3 cell
+            geo = h3.cell_to_boundary(h3_index)
+            centroid = h3.cell_to_latlng(h3_index)
 
-        # Adjust the boundary coordinates if they cross the antimeridian (remembering lat/lng flip)
-        geojson_boundary = adjust_longitudes_if_crosses_antimeridian(geo)
+            # Adjust the boundary coordinates if they cross the antimeridian (remembering lat/lng flip)
+            geojson_boundary = adjust_longitudes_if_crosses_antimeridian(geo)
 
-        # Convert to GeoJSON [lng, lat] order (flip back lat/lng)
-        geojson_boundary = [[lng, lat] for lat, lng in geojson_boundary]
-        centroid_geo = [centroid[1], centroid[0]]  # [lng, lat]
+            # Convert to GeoJSON [lng, lat] order (flip back lat/lng)
+            geojson_boundary = [[lng, lat] for lat, lng in geojson_boundary]
+            centroid_geo = [centroid[1], centroid[0]]  # [lng, lat]
 
-        # Wrap this in a GeoJSON feature
-        featurepoly = {
-            "type": "Feature",
-            "geometry": {
-                "type": "Polygon",
-                "coordinates": [geojson_boundary]
-            },
-            "properties": {
-                "h3_index": h3_index,
-                "combined": combined_score,
-                "mapping": mapping_score,
-                "chemistry": chemistry_score,
-                "geology": geology_score,
-                "occurrence": occurrence_score
+            # Wrap this in a GeoJSON feature
+            featurepoly = {
+                "type": "Feature",
+                "geometry": {
+                    "type": "Polygon",
+                    "coordinates": [geojson_boundary]
+                },
+                "properties": {
+                    "h3_index": h3_index,
+                    "combined": combined_score,
+                    "mapping": mapping_score,
+                    "chemistry": chemistry_score,
+                    "geology": geology_score,
+                    "occurrence": occurrence_score
+                }
             }
+
+                    # Wrap this in a GeoJSON feature
+            featurepoint = {
+                "type": "Feature",
+                "geometry": {
+                    "type": "Point",
+                    "coordinates": centroid_geo
+                },
+                "properties": {
+                    "h3_index": h3_index,
+                    "combined": combined_score,
+                    "mapping": mapping_score,
+                    "chemistry": chemistry_score,
+                    "geology": geology_score,
+                    "occurrence": occurrence_score
+                }
+            }
+            
+            # Append the feature to the list
+            featurespoly.append(featurepoly)
+            featurespoint.append(featurepoint)
+
+        # Create a GeoJSON FeatureCollection for the polygons
+        geojsonpoly = {
+            "type": "FeatureCollection",
+            "features": featurespoly
         }
 
-                # Wrap this in a GeoJSON feature
-        featurepoint = {
-            "type": "Feature",
-            "geometry": {
-                "type": "Point",
-                "coordinates": centroid_geo
-            },
-            "properties": {
-                "h3_index": h3_index,
-                "combined": combined_score,
-                "mapping": mapping_score,
-                "chemistry": chemistry_score,
-                "geology": geology_score,
-                "occurrence": occurrence_score
-            }
+        # Create a GeoJSON FeatureCollection for the points
+        geojsonpoint = {
+            "type": "FeatureCollection",
+            "features": featurespoint
         }
-        
-        # Append the feature to the list
-        featurespoly.append(featurepoly)
-        featurespoint.append(featurepoint)
 
-    # Create a GeoJSON FeatureCollection for the polygons
-    geojsonpoly = {
-        "type": "FeatureCollection",
-        "features": featurespoly
-    }
+        # Write the GeoJSON poly data to a file
+        with open(output_geojsonpoly, 'w') as f:
+            json.dump(geojsonpoly, f, indent=2)
 
-    # Create a GeoJSON FeatureCollection for the points
-    geojsonpoint = {
-        "type": "FeatureCollection",
-        "features": featurespoint
-    }
+        print(f"GeoJSON saved to {output_geojsonpoly}")
 
-    # Write the GeoJSON poly data to a file
-    with open(output_geojsonpoly, 'w') as f:
-        json.dump(geojsonpoly, f, indent=2)
+        # Write the GeoJSON point data to a file
+        with open(output_geojsonpoint, 'w') as f:
+            json.dump(geojsonpoint, f, indent=2)
 
-    print(f"GeoJSON saved to {output_geojsonpoly}")
-
-    # Write the GeoJSON point data to a file
-    with open(output_geojsonpoint, 'w') as f:
-        json.dump(geojsonpoint, f, indent=2)
-
-    print(f"GeoJSON saved to {output_geojsonpoint}")
+        print(f"GeoJSON saved to {output_geojsonpoint}")
 
 # Default arguments for DAG
 default_args = {
