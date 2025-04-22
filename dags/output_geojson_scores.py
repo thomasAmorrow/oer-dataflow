@@ -63,6 +63,11 @@ def generate_geojson():
 
     for rez in ['03', '04', '05']:
         rows = fetch_data_from_pg(rez)
+<<<<<<< HEAD
+=======
+        #output_geojsonpoint = f'/mnt/s3bucket/h3_points_05_{timestr}.geojson'
+        #output_geojsonpoly = f'/mnt/s3bucket/h3_hexagons_05_{timestr}.geojson'
+>>>>>>> d158850a2ceaf38177b826fede263b945343dafa
         output_geojsonpoint = f'/mnt/s3bucket/h3_points_{rez}.geojson'
         output_geojsonpoly = f'/mnt/s3bucket/h3_hexagons_{rez}.geojson'
         featurespoly = []
@@ -75,6 +80,7 @@ def generate_geojson():
             geo = h3.cell_to_boundary(h3_index)
             centroid = h3.cell_to_latlng(h3_index)
 
+<<<<<<< HEAD
             # Adjust the boundary coordinates if they cross the antimeridian
             geojson_boundary1, geojson_boundary2 = adjust_longitudes_if_crosses_antimeridian(geo)
 
@@ -94,6 +100,21 @@ def generate_geojson():
                 "geometry": {
                     "type": "Polygon",
                     "coordinates": [geojson_boundary1]
+=======
+            # Adjust the boundary coordinates if they cross the antimeridian (remembering lat/lng flip)
+            geojson_boundary = adjust_longitudes_if_crosses_antimeridian(geo)
+
+            # Convert to GeoJSON [lng, lat] order (flip back lat/lng)
+            geojson_boundary = [[lng, lat] for lat, lng in geojson_boundary]
+            centroid_geo = [centroid[1], centroid[0]]  # [lng, lat]
+
+            # Wrap this in a GeoJSON feature
+            featurepoly = {
+                "type": "Feature",
+                "geometry": {
+                    "type": "Polygon",
+                    "coordinates": [geojson_boundary]
+>>>>>>> d158850a2ceaf38177b826fede263b945343dafa
                 },
                 "properties": {
                     "h3_index": h3_index,
@@ -104,6 +125,7 @@ def generate_geojson():
                     "occurrence": occurrence_score
                 }
             }
+<<<<<<< HEAD
             
             # Wrap the second half in a GeoJSON feature if it exists
             featurepoly2 = {}
@@ -130,6 +152,10 @@ def generate_geojson():
                 featurespoly.append(featurepoly2)
 
             # Wrap the centroid in a GeoJSON point feature
+=======
+
+                    # Wrap this in a GeoJSON feature
+>>>>>>> d158850a2ceaf38177b826fede263b945343dafa
             featurepoint = {
                 "type": "Feature",
                 "geometry": {
@@ -145,8 +171,14 @@ def generate_geojson():
                     "occurrence": occurrence_score
                 }
             }
+<<<<<<< HEAD
 
             # Append the point feature to the list
+=======
+            
+            # Append the feature to the list
+            featurespoly.append(featurepoly)
+>>>>>>> d158850a2ceaf38177b826fede263b945343dafa
             featurespoint.append(featurepoint)
 
         # Create a GeoJSON FeatureCollection for the polygons
@@ -172,7 +204,10 @@ def generate_geojson():
             json.dump(geojsonpoint, f, indent=2)
 
         print(f"GeoJSON saved to {output_geojsonpoint}")
+<<<<<<< HEAD
 
+=======
+>>>>>>> d158850a2ceaf38177b826fede263b945343dafa
 
 # Default arguments for DAG
 default_args = {
