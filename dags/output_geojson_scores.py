@@ -55,7 +55,7 @@ def fetch_data_from_pg(hexrez):
     pg_hook = PostgresHook(postgres_conn_id="oceexp-db")
     conn = pg_hook.get_conn()
     cursor = conn.cursor()
-    cursor.execute(f"SELECT hex_{hexrez}, combined_score, mapping_score, occurrence_score, chemistry_score, geology_score FROM ega_score_{hexrez}")
+    cursor.execute(f"SELECT hex_{hexrez}, COALESCE(combined_score,0), COALESCE(mapping_score,0), COALESCE(occurrence_score,0), COALESCE(chemistry_score,0), COALESCE(geology_score,0) FROM ega_score_{hexrez}")
     rows = cursor.fetchall()
     cursor.close()
     conn.close()
