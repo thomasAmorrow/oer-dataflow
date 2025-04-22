@@ -8,18 +8,15 @@ import json
 
 # Function to adjust the boundary if it crosses the antimeridian
 def adjust_longitudes_if_crosses_antimeridian(boundary):
-    # First, we'll split the boundary into two parts: one on the -180 side and one on the +180 side
     first_half = []
     second_half = []
     intersection_points = []
 
     for i, (lat, lng) in enumerate(boundary):
-        # Check if we need to split at the meridian
         next_lat, next_lng = boundary[(i + 1) % len(boundary)]  # next point, cyclically
 
         # Handle edges crossing the meridian
         if (lng <= -180 and next_lng >= 180) or (lng >= 180 and next_lng <= -180):
-            # Compute intersection points at the antimeridian (longitude = 180 or -180)
             intersection_point = [lat, 180 if lng < 0 else -180]
             intersection_points.append(intersection_point)
 
@@ -28,7 +25,7 @@ def adjust_longitudes_if_crosses_antimeridian(boundary):
         else:
             second_half.append([lat, lng])
 
-    # Insert intersection points where appropriate to ensure the split is valid
+    # Insert intersection points
     if intersection_points:
         first_half.append(intersection_points[0])
         second_half.insert(0, intersection_points[1])
@@ -46,7 +43,6 @@ def close_polygon(polygon):
 
 # Function to fetch data from PostgreSQL
 def fetch_data_from_pg(hexrez):
-     # Initialize PostgresHook
     pg_hook = PostgresHook(postgres_conn_id="oceexp-db")
     conn = pg_hook.get_conn()
     cursor = conn.cursor()
@@ -63,11 +59,6 @@ def generate_geojson():
 
     for rez in ['03', '04', '05']:
         rows = fetch_data_from_pg(rez)
-<<<<<<< HEAD
-=======
-        #output_geojsonpoint = f'/mnt/s3bucket/h3_points_05_{timestr}.geojson'
-        #output_geojsonpoly = f'/mnt/s3bucket/h3_hexagons_05_{timestr}.geojson'
->>>>>>> d158850a2ceaf38177b826fede263b945343dafa
         output_geojsonpoint = f'/mnt/s3bucket/h3_points_{rez}.geojson'
         output_geojsonpoly = f'/mnt/s3bucket/h3_hexagons_{rez}.geojson'
         featurespoly = []
@@ -80,7 +71,6 @@ def generate_geojson():
             geo = h3.cell_to_boundary(h3_index)
             centroid = h3.cell_to_latlng(h3_index)
 
-<<<<<<< HEAD
             # Adjust the boundary coordinates if they cross the antimeridian
             geojson_boundary1, geojson_boundary2 = adjust_longitudes_if_crosses_antimeridian(geo)
 
@@ -94,27 +84,14 @@ def generate_geojson():
 
             centroid_geo = [centroid[1], centroid[0]]  # [lng, lat]
 
-            # Wrap the first half in a GeoJSON feature
+            # Create two separate GeoJSON features for the two halves of the split polygon
+
+            # First half polygon (negative side)
             featurepoly1 = {
                 "type": "Feature",
                 "geometry": {
                     "type": "Polygon",
                     "coordinates": [geojson_boundary1]
-=======
-            # Adjust the boundary coordinates if they cross the antimeridian (remembering lat/lng flip)
-            geojson_boundary = adjust_longitudes_if_crosses_antimeridian(geo)
-
-            # Convert to GeoJSON [lng, lat] order (flip back lat/lng)
-            geojson_boundary = [[lng, lat] for lat, lng in geojson_boundary]
-            centroid_geo = [centroid[1], centroid[0]]  # [lng, lat]
-
-            # Wrap this in a GeoJSON feature
-            featurepoly = {
-                "type": "Feature",
-                "geometry": {
-                    "type": "Polygon",
-                    "coordinates": [geojson_boundary]
->>>>>>> d158850a2ceaf38177b826fede263b945343dafa
                 },
                 "properties": {
                     "h3_index": h3_index,
@@ -125,9 +102,8 @@ def generate_geojson():
                     "occurrence": occurrence_score
                 }
             }
-<<<<<<< HEAD
-            
-            # Wrap the second half in a GeoJSON feature if it exists
+
+            # Second half polygon (positive side)
             featurepoly2 = {}
             if geojson_boundary2:
                 featurepoly2 = {
@@ -146,16 +122,12 @@ def generate_geojson():
                     }
                 }
 
-            # Add the polygon features to the list
+            # Add both polygons to the list
             featurespoly.append(featurepoly1)
             if geojson_boundary2:
                 featurespoly.append(featurepoly2)
 
             # Wrap the centroid in a GeoJSON point feature
-=======
-
-                    # Wrap this in a GeoJSON feature
->>>>>>> d158850a2ceaf38177b826fede263b945343dafa
             featurepoint = {
                 "type": "Feature",
                 "geometry": {
@@ -171,14 +143,8 @@ def generate_geojson():
                     "occurrence": occurrence_score
                 }
             }
-<<<<<<< HEAD
 
             # Append the point feature to the list
-=======
-            
-            # Append the feature to the list
-            featurespoly.append(featurepoly)
->>>>>>> d158850a2ceaf38177b826fede263b945343dafa
             featurespoint.append(featurepoint)
 
         # Create a GeoJSON FeatureCollection for the polygons
@@ -204,10 +170,7 @@ def generate_geojson():
             json.dump(geojsonpoint, f, indent=2)
 
         print(f"GeoJSON saved to {output_geojsonpoint}")
-<<<<<<< HEAD
 
-=======
->>>>>>> d158850a2ceaf38177b826fede263b945343dafa
 
 # Default arguments for DAG
 default_args = {
