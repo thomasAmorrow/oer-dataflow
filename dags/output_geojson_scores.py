@@ -3,8 +3,15 @@ from airflow import DAG
 from airflow.operators.python import PythonOperator
 from airflow.providers.postgres.hooks.postgres import PostgresHook
 import h3
-import time
 import json
+import time
+
+# Function to check if a polygon crosses the antimeridian
+def crosses_antimeridian(boundary):
+    """Check if the polygon crosses the antimeridian."""
+    longitudes = [lng for lat, lng in boundary]
+    return any(lng <= -180 and longitudes[i+1] > 180 or lng >= 180 and longitudes[i+1] < -180
+               for i, lng in enumerate(longitudes[:-1]))
 
 # Function to adjust the boundary if it crosses the antimeridian
 def adjust_longitudes_if_crosses_antimeridian(boundary):
@@ -25,21 +32,23 @@ def adjust_longitudes_if_crosses_antimeridian(boundary):
         else:
             second_half.append([lat, lng])
 
-    # Insert intersection points
+    # Insert intersection points if they exist
     if intersection_points:
         first_half.append(intersection_points[0])
         second_half.insert(0, intersection_points[1])
 
     return first_half, second_half
 
-
 # Function to check if a polygon is closed
 def close_polygon(polygon):
     """Ensure that the polygon is closed by checking if the last point matches the first."""
+    if not polygon:
+        raise ValueError("Polygon is empty and cannot be closed.")  # Raise error if empty
+    
     if polygon[0] != polygon[-1]:
         polygon.append(polygon[0])  # Close the polygon by repeating the first point at the end
+    
     return polygon
-
 
 # Function to fetch data from PostgreSQL
 def fetch_data_from_pg(hexrez):
@@ -51,7 +60,6 @@ def fetch_data_from_pg(hexrez):
     cursor.close()
     conn.close()
     return rows
-
 
 # Function to generate GeoJSON from database
 def generate_geojson():
@@ -71,46 +79,36 @@ def generate_geojson():
             geo = h3.cell_to_boundary(h3_index)
             centroid = h3.cell_to_latlng(h3_index)
 
-            # Adjust the boundary coordinates if they cross the antimeridian
-            geojson_boundary1, geojson_boundary2 = adjust_longitudes_if_crosses_antimeridian(geo)
+            # Check if the polygon crosses the antimeridian
+            if crosses_antimeridian(geo):
+                # Adjust the boundary coordinates if they cross the antimeridian
+                geojson_boundary1, geojson_boundary2 = adjust_longitudes_if_crosses_antimeridian(geo)
 
-            # Convert to GeoJSON [lng, lat] order (flip back lat/lng)
-            geojson_boundary1 = [[lng, lat] for lat, lng in geojson_boundary1]
-            geojson_boundary2 = [[lng, lat] for lat, lng in geojson_boundary2]
+                # Convert to GeoJSON [lng, lat] order (flip back lat/lng)
+                geojson_boundary1 = [[lng, lat] for lat, lng in geojson_boundary1]
+                geojson_boundary2 = [[lng, lat] for lat, lng in geojson_boundary2]
 
-            # Ensure the polygons are closed
-            geojson_boundary1 = close_polygon(geojson_boundary1)
-            geojson_boundary2 = close_polygon(geojson_boundary2)
+                # Ensure the polygons are closed
+                try:
+                    geojson_boundary1 = close_polygon(geojson_boundary1)
+                except ValueError as e:
+                    print(f"Skipping invalid polygon (boundary1): {e}")
+                    continue
 
-            centroid_geo = [centroid[1], centroid[0]]  # [lng, lat]
+                try:
+                    geojson_boundary2 = close_polygon(geojson_boundary2)
+                except ValueError as e:
+                    print(f"Skipping invalid polygon (boundary2): {e}")
+                    continue
 
-            # Create two separate GeoJSON features for the two halves of the split polygon
+                # Create two separate GeoJSON features for the two halves of the split polygon
 
-            # First half polygon (negative side)
-            featurepoly1 = {
-                "type": "Feature",
-                "geometry": {
-                    "type": "Polygon",
-                    "coordinates": [geojson_boundary1]
-                },
-                "properties": {
-                    "h3_index": h3_index,
-                    "combined": combined_score,
-                    "mapping": mapping_score,
-                    "chemistry": chemistry_score,
-                    "geology": geology_score,
-                    "occurrence": occurrence_score
-                }
-            }
-
-            # Second half polygon (positive side)
-            featurepoly2 = {}
-            if geojson_boundary2:
-                featurepoly2 = {
+                # First half polygon (negative side)
+                featurepoly1 = {
                     "type": "Feature",
                     "geometry": {
                         "type": "Polygon",
-                        "coordinates": [geojson_boundary2]
+                        "coordinates": [geojson_boundary1]
                     },
                     "properties": {
                         "h3_index": h3_index,
@@ -122,12 +120,56 @@ def generate_geojson():
                     }
                 }
 
-            # Add both polygons to the list
-            featurespoly.append(featurepoly1)
-            if geojson_boundary2:
-                featurespoly.append(featurepoly2)
+                # Second half polygon (positive side)
+                featurepoly2 = {}
+                if geojson_boundary2:
+                    featurepoly2 = {
+                        "type": "Feature",
+                        "geometry": {
+                            "type": "Polygon",
+                            "coordinates": [geojson_boundary2]
+                        },
+                        "properties": {
+                            "h3_index": h3_index,
+                            "combined": combined_score,
+                            "mapping": mapping_score,
+                            "chemistry": chemistry_score,
+                            "geology": geology_score,
+                            "occurrence": occurrence_score
+                        }
+                    }
+
+                # Add both polygons to the list
+                featurespoly.append(featurepoly1)
+                if geojson_boundary2:
+                    featurespoly.append(featurepoly2)
+            else:
+                # If the polygon doesn't cross the antimeridian, process it normally
+                geojson_boundary = [[lng, lat] for lat, lng in geo]
+                geojson_boundary = close_polygon(geojson_boundary)
+
+                # Create a single GeoJSON feature for the polygon
+                featurepoly = {
+                    "type": "Feature",
+                    "geometry": {
+                        "type": "Polygon",
+                        "coordinates": [geojson_boundary]
+                    },
+                    "properties": {
+                        "h3_index": h3_index,
+                        "combined": combined_score,
+                        "mapping": mapping_score,
+                        "chemistry": chemistry_score,
+                        "geology": geology_score,
+                        "occurrence": occurrence_score
+                    }
+                }
+
+                # Add the polygon to the list
+                featurespoly.append(featurepoly)
 
             # Wrap the centroid in a GeoJSON point feature
+            centroid_geo = [centroid[1], centroid[0]]  # [lng, lat]
             featurepoint = {
                 "type": "Feature",
                 "geometry": {
@@ -200,3 +242,4 @@ generate_geojson = PythonOperator(
 )
 
 # Define task dependencies
+generate_geojson
