@@ -1,0 +1,218 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Leaflet Contours with Fine Grid</title>
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+  <script src="https://unpkg.com/leaflet.vectorgrid@1.3.0/dist/Leaflet.VectorGrid.min.js"></script>
+  <script src="https://d3js.org/d3.v7.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/d3-scale-chromatic@3.0.0/dist/d3-scale-chromatic.min.js"></script>
+  <script src="https://unpkg.com/h3-js"></script>
+
+  <style>
+    #map { width: 100%; height: 600px; }
+    canvas.leaflet-canvas-layer {
+      z-index: 400;
+      pointer-events: none;
+    }
+  </style>
+</head>
+<body>
+  <div id="map"></div>
+
+  <script>
+    const map = L.map('map').setView([20, -155], 5);
+
+    // OpenStreetMap Base Layer
+    L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {
+	    attribution: 'Tiles &copy; Esri &mdash; Source: Esri, i-cubed, USDA, USGS, AEX, GeoEye, Getmapping, Aerogrid, IGN, IGP, UPR-EGP, and the GIS User Community'
+    }).addTo(map);
+
+    L.tileLayer('http://localhost:8000/tiles/{z}/{x}/{y}.png', {
+      attribution: 'Ocean Contours',
+      maxZoom: 6,
+      minZoom: 0,
+      tms: 1,
+      opacity: 0.6,  // Make sure opacity is set to 1 for full visibility, or adjust if needed
+    }).addTo(map);
+
+    let geojsonPoints = [];
+    let currentZoomBand = null;
+    let canvasLayer = null;
+    let hoverHexagonLayer = null; // Layer for hover hexagons
+
+    // Zoom Band Checker
+    function getZoomBand(zoom) {
+      if (zoom < 3) return null;
+      if (zoom < 7 && zoom >= 3) return '03';
+      if (zoom < 10 && zoom >= 7) return '04';
+      if (zoom < 12 && zoom >= 10) return '05';
+      return null;
+    }
+
+    // Load GeoJSON data based on zoom level
+    function loadGeoJSONForZoom() {
+      const zoom = map.getZoom();
+      const band = getZoomBand(zoom);
+
+      if (band === null) {
+        geojsonPoints = [];
+        currentZoomBand = null;
+        if (canvasLayer) canvasLayer._reset();
+        return;
+      }
+
+      if (band === currentZoomBand) return;
+
+      currentZoomBand = band;
+      const url = `http://localhost:8000/geo/h3_points_${band}.geojson`;
+
+      fetch(url)
+        .then(res => {
+          if (!res.ok) throw new Error(`HTTP error! status: ${res.status}`);
+          return res.json();
+        })
+        .then(data => {
+          geojsonPoints = data.features
+            .filter(f => f.geometry.type === 'Point')
+            .map(f => ({
+              latlng: L.latLng(f.geometry.coordinates[1], f.geometry.coordinates[0]),
+              properties: f.properties
+            }));
+
+          if (!canvasLayer) {
+            canvasLayer = new CustomCanvasLayer();
+            map.addLayer(canvasLayer);
+          } else {
+            canvasLayer._reset();
+          }
+        })
+        .catch(err => console.error('Error loading GeoJSON:', err));
+    }
+
+    const CustomCanvasLayer = L.Layer.extend({
+      onAdd: function(map) {
+        this._canvas = L.DomUtil.create('canvas', 'leaflet-canvas-layer');
+        const size = map.getSize();
+        this._canvas.width = size.x;
+        this._canvas.height = size.y;
+        this._canvas.style.position = 'absolute';
+        this._ctx = this._canvas.getContext('2d');
+
+        map.getPanes().overlayPane.appendChild(this._canvas);
+
+        map.on('move', this._reset, this);
+        map.on('resize', this._resize, this);
+        map.on('click', this._onClick, this); // Listen for click event
+
+        this._reset();
+      },
+      onRemove: function(map) {
+        L.DomUtil.remove(this._canvas);
+        map.off('move', this._reset, this);
+        map.off('resize', this._resize, this);
+        map.off('click', this._onClick, this); // Remove click event listener
+      },
+      _resize: function(e) {
+        this._canvas.width = e.newSize.x;
+        this._canvas.height = e.newSize.y;
+      },
+      _reset: function() {
+        const topLeft = map.containerPointToLayerPoint([0, 0]);
+        L.DomUtil.setPosition(this._canvas, topLeft);
+
+        const ctx = this._ctx;
+        ctx.clearRect(0, 0, this._canvas.width, this._canvas.height);
+
+        geojsonPoints.forEach(pt => {
+          const baseLat = pt.latlng.lat;
+          const baseLng = pt.latlng.lng;
+
+          [-360, 0, 360].forEach(offset => {
+            const wrappedLng = baseLng + offset;
+            const wrappedLatLng = L.latLng(baseLat, wrappedLng);
+            const pixel = map.latLngToContainerPoint(wrappedLatLng);
+
+            const radius = 4;
+            ctx.beginPath();
+            ctx.arc(pixel.x, pixel.y, radius, 0, Math.PI * 2);
+            ctx.fillStyle = 'rgba(255, 255, 255, 0.8)';
+            ctx.fill();
+          });
+        });
+      },
+
+      // Click event to show point details in a popup
+      _onClick: function(e) {
+        if (!geojsonPoints || geojsonPoints.length === 0) return;
+
+        const clickPoint = map.latLngToContainerPoint(e.latlng);
+        const radius = 4;
+
+        for (let i = 0; i < geojsonPoints.length; i++) {
+          const pt = geojsonPoints[i];
+          const baseLat = pt.latlng.lat;
+          const baseLng = pt.latlng.lng;
+
+          [-360, 0, 360].forEach(offset => {
+            const testLng = baseLng + offset;
+            const testLatLng = L.latLng(baseLat, testLng);
+            const pixel = map.latLngToContainerPoint(testLatLng);
+
+            const dx = clickPoint.x - pixel.x;
+            const dy = clickPoint.y - pixel.y;
+            const dist = Math.sqrt(dx * dx + dy * dy);
+
+            if (dist <= radius) {
+              // Display the point details in a popup
+              const popupContent = `
+                <strong>Point Details</strong><br>
+                H3 Index: ${pt.properties.h3_index}<br>
+                Latitude: ${baseLat}<br>
+                Longitude: ${baseLng}
+              `;
+              L.popup()
+                .setLatLng(e.latlng)
+                .setContent(popupContent)
+                .openOn(map);
+
+              // Display the corresponding H3 hexagon
+              const h3Index = pt.properties.h3_index;
+              this._showHexagon(h3Index);
+            }
+          });
+        }
+      },
+
+      // Show the hexagon for the H3 index
+      _showHexagon: function(h3Index) {
+        // Convert H3 index to polygon coordinates
+        const hexagonCoordinates = h3.cellToBoundary(h3Index); // Get the boundary of the hexagon in lat/lng
+
+        // Create a LatLng array from the hexagon coordinates
+        const latlngs = hexagonCoordinates.map(coord => L.latLng(coord[0], coord[1]));
+
+        // Draw the hexagon on the map layer
+        if (!hoverHexagonLayer) {
+          hoverHexagonLayer = L.polygon(latlngs, {
+            color: 'red',
+            weight: 2,
+            fillColor: 'rgba(255, 0, 0, 0.3)',
+            fillOpacity: 0.3
+          }).addTo(map);
+        } else {
+          hoverHexagonLayer.setLatLngs(latlngs); // Update existing hexagon
+        }
+
+        // Optionally center the map on the clicked point
+        //map.setView(centerLatLng, map.getZoom());
+      },
+    });
+
+    map.on('zoomend', loadGeoJSONForZoom);
+    loadGeoJSONForZoom();
+  </script>
+</body>
+</html>

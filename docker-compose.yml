@@ -270,14 +270,14 @@ services:
       <<: *airflow-common-depends-on
       airflow-init:
         condition: service_completed_successfully
-
-  webmap:
+  web:
     image: nginx:alpine
     ports:
-      - "8090:80"
+      - "8000:80"
     volumes:
-      - ./build:/usr/share/nginx/html
-    restart: always
+      - ./app:/usr/share/nginx/html
+      - ./tiles:/usr/share/nginx/html/tiles
+    restart: unless-stopped
 
 
 volumes:

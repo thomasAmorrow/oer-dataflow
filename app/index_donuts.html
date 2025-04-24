@@ -1,0 +1,196 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Leaflet with Canvas & Raster Tiles</title>
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+  <script src="https://d3js.org/d3.v7.min.js"></script>
+  <style>
+    #map { width: 100%; height: 800px; }
+    canvas.leaflet-canvas-layer {
+      position: absolute;
+      z-index: 400;
+      pointer-events: none;
+    }
+  </style>
+</head>
+<body>
+  <div id="map"></div>
+
+  <script>
+    const map = L.map('map').setView([20, -155], 5);
+
+    // Base map
+    L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {
+	  attribution: 'Tiles &copy; Esri &mdash; Source: Esri, i-cubed, USDA, USGS, AEX, GeoEye, Getmapping, Aerogrid, IGN, IGP, UPR-EGP, and the GIS User Community'
+    }).addTo(map);
+
+    // ------------- Canvas Layer for Points --------------
+    let geojsonPoints = [];
+    let currentZoomBand = null;
+    let canvasLayer = null;
+
+    function getZoomBand(zoom) {
+      if (zoom < 3) return null;
+      if (zoom < 7) return '03';
+      if (zoom < 10) return '04';
+      if (zoom < 12) return '05';
+      return null;
+    }
+
+    function loadGeoJSONForZoom() {
+      const zoom = map.getZoom();
+      const band = getZoomBand(zoom);
+
+      if (band === null) {
+        geojsonPoints = [];
+        currentZoomBand = null;
+        if (canvasLayer) canvasLayer._reset();
+        return;
+      }
+
+      if (band === currentZoomBand) return;
+
+      currentZoomBand = band;
+      const url = `http://localhost:8000/geo/h3_points_${band}.geojson`;
+
+      fetch(url)
+        .then(res => {
+          if (!res.ok) throw new Error(`HTTP error! status: ${res.status}`);
+          return res.json();
+        })
+        .then(data => {
+          geojsonPoints = data.features
+            .filter(f => f.geometry.type === 'Point')
+            .map(f => ({
+              latlng: L.latLng(f.geometry.coordinates[1], f.geometry.coordinates[0]),
+              properties: f.properties
+            }));
+
+          if (!canvasLayer) {
+            canvasLayer = new CustomCanvasLayer();
+            map.addLayer(canvasLayer);
+          } else {
+            canvasLayer._reset();
+          }
+        })
+        .catch(err => console.error('Error loading GeoJSON:', err));
+    }
+
+    const CustomCanvasLayer = L.Layer.extend({
+      onAdd: function(map) {
+        this._canvas = L.DomUtil.create('canvas', 'leaflet-canvas-layer');
+        const size = map.getSize();
+        this._canvas.width = size.x;
+        this._canvas.height = size.y;
+        this._canvas.style.position = 'absolute';
+        this._ctx = this._canvas.getContext('2d');
+
+        map.getPanes().overlayPane.appendChild(this._canvas);
+        map.on('move', this._reset, this);
+        map.on('resize', this._resize, this);
+        this._reset();
+      },
+      onRemove: function(map) {
+        L.DomUtil.remove(this._canvas);
+        map.off('move', this._reset, this);
+        map.off('resize', this._resize, this);
+      },
+      _resize: function(e) {
+        this._canvas.width = e.newSize.x;
+        this._canvas.height = e.newSize.y;
+      },
+      _reset: function() {
+        const topLeft = map.containerPointToLayerPoint([0, 0]);
+        L.DomUtil.setPosition(this._canvas, topLeft);
+
+        const ctx = this._ctx;
+        ctx.clearRect(0, 0, this._canvas.width, this._canvas.height);
+
+        geojsonPoints.forEach(pt => {
+          const baseLat = pt.latlng.lat;
+          const baseLng = pt.latlng.lng;
+
+          // Get the combined property value
+          const combinedValue = pt.properties.combined || 0;  // Use "combined" property
+
+          // Normalize between 0 and 1 (assuming the "combined" value is already in this range)
+          const normalizedValue = Math.min(Math.max(combinedValue, 0), 1);
+
+          // Use viridis color scale from d3
+          const color = d3.scaleSequential(d3.interpolateViridis)
+            .domain([0.1, 0])(normalizedValue);
+
+          [-360, 0, 360].forEach(offset => {
+            const wrappedLng = baseLng + offset;
+            const wrappedLatLng = L.latLng(baseLat, wrappedLng);
+            const pixel = map.latLngToContainerPoint(wrappedLatLng);
+
+            const radius = 10;
+            ctx.beginPath();
+            ctx.arc(pixel.x, pixel.y, radius, 0, Math.PI * 2);
+
+            // Set the fill style to the color from viridis scale
+            //ctx.fillStyle = color;
+
+            // Apply the fill
+            //ctx.fill();
+
+            // opacity
+            ctx.globalAlpha = 0.8;
+
+            // Set the stroke style to your desired color (optional)
+            ctx.strokeStyle = color; // Example stroke color
+
+            // Set the stroke width
+            ctx.lineWidth = 4;
+
+            // Apply the stroke
+            ctx.stroke();
+          });
+        });
+      }
+    });
+
+    map.on('zoomend', loadGeoJSONForZoom);
+    loadGeoJSONForZoom();
+
+    // Click handler for points
+    map.on('click', function(e) {
+      if (!geojsonPoints || geojsonPoints.length === 0) return;
+
+      const clickPoint = map.latLngToContainerPoint(e.latlng);
+      const radius = 4;
+
+      for (let i = 0; i < geojsonPoints.length; i++) {
+        const pt = geojsonPoints[i];
+        const baseLat = pt.latlng.lat;
+        const baseLng = pt.latlng.lng;
+
+        [-360, 0, 360].forEach(offset => {
+          const testLng = baseLng + offset;
+          const testLatLng = L.latLng(baseLat, testLng);
+          const pixel = map.latLngToContainerPoint(testLatLng);
+
+          const dx = clickPoint.x - pixel.x;
+          const dy = clickPoint.y - pixel.y;
+          const dist = Math.sqrt(dx * dx + dy * dy);
+
+          if (dist <= radius) {
+            const content = Object.entries(pt.properties)
+              .map(([key, val]) => `<strong>${key}</strong>: ${val}`)
+              .join('<br>');
+
+            L.popup()
+              .setLatLng(testLatLng)
+              .setContent(content)
+              .openOn(map);
+          }
+        });
+      }
+    });
+  </script>
+</body>
+</html>
