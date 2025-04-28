@@ -314,7 +314,7 @@ default_args = {
 }
 
 dag = DAG(
-    'dataset_ETL_OBS_sequences',
+    'dataset_ETL_OBIS_sequences',
     default_args=default_args,
     description='Fetch sequences from OBIS, save to PostgreSQL, assign hexes',
     schedule_interval=None,
