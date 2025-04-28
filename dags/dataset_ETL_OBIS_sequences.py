@@ -324,13 +324,13 @@ dag = DAG(
 
 fetch_OBIS_query_table = PythonOperator(
     task_id='fetch_OBIS_query_table',
-    python_callable=fetch_OBS_table,
+    python_callable=fetch_OBIS_table,
     provide_context=True,
     dag=dag
 )
 
 load_OBIS_table = PythonOperator(
-    task_id='load_OBS_table',
+    task_id='load_OBIS_table',
     python_callable=load_OBIS_table_csv,
     provide_context=True,
     dag=dag
@@ -338,7 +338,7 @@ load_OBIS_table = PythonOperator(
 
 assign_hexes_to_OBIS = PythonOperator(
     task_id='assign_hexes_to_OBIS',
-    python_callable=assign_OBS_hex,
+    python_callable=assign_OBIS_hex,
     provide_context=True,
     dag=dag
 )
