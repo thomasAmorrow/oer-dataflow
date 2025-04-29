@@ -29,7 +29,7 @@ def fetch_OBIS_table():
 
         # Input and output file paths
         input_file = f"/mnt/bucket/output.csv"
-        output_file = '/mnt/bucket/cleaned_NR117.csv'
+        output_file = "/mnt/bucket/cleaned_NR117.csv"
 
         # Check if the file exists before processing
         if not os.path.exists(input_file):
