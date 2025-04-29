@@ -223,7 +223,7 @@ def load_OBIS_table_csv():
             subphylum,
             subphylumid,
             taxonRank,
-            id PRIMARY KEY,
+            id,
             dataset_id,
             node_id,
             dropped,
