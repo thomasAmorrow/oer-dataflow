@@ -41,7 +41,7 @@ def fetch_OBIS_table():
             
             # Create a CSV reader and writer
             reader = csv.reader(infile, delimiter=',', quotechar='"', quoting=csv.QUOTE_MINIMAL)
-            writer = csv.writer(outfile, delimiter=',', quotechar='"', quoting=csv.QUOTE_MINIMAL)
+            writer = csv.writer(outfile, delimiter='\t', quotechar='"', quoting=csv.QUOTE_MINIMAL)
 
             # Process each row
             for row in reader:
@@ -384,7 +384,7 @@ def load_OBIS_table_csv():
             subspeciesid
         )
         FROM '/mnt/bucket/cleaned_NR151.csv'
-        WITH (FORMAT csv, HEADER true, QUOTE '"'); 
+        WITH (FORMAT csv, HEADER true, DELIMITER E'\t', QUOTE '"'); 
     """
 
     # Initialize PostgresHook
