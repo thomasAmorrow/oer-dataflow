@@ -9,6 +9,8 @@ import h3
 import json
 import time
 import logging
+import shapely
+from shapely.geometry import shape  # Added import
 
 def fetch_WCSD_footprints():
     # Define the base URL for the Feature Layer
