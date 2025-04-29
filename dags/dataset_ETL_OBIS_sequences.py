@@ -64,7 +64,7 @@ def fetch_OBIS_table():
         
         logging.info("Finished cleaning file, cleanup started...")
 
-        #os.remove(f"/mnt/bucket/{occdatakey}.csv")
+        os.remove(f"/mnt/bucket/output.csv")
         #os.remove(f"/mnt/bucket/{occdatakey}.zip")
 
 
