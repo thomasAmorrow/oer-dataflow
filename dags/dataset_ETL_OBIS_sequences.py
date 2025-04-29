@@ -29,7 +29,7 @@ def fetch_OBIS_table():
 
         # Input and output file paths
         input_file = f"/mnt/bucket/output.csv"
-        output_file = '/mnt/bucket/cleaned_NR94.csv'
+        output_file = '/mnt/bucket/cleaned_NR117.csv'
 
         # Check if the file exists before processing
         if not os.path.exists(input_file):
@@ -314,8 +314,8 @@ def load_OBIS_table_csv():
             megaclass,
             megaclassid
         )
-        FROM '/mnt/bucket/cleaned_NR94.csv'
-        WITH (FORMAT csv, HEADER true, DELIMITER E'\t', QUOTE '"'); 
+        FROM '/mnt/bucket/cleaned_NR117.csv'
+        WITH (FORMAT csv, HEADER true, DELIMITER E',', QUOTE '"'); 
     """
 
     # Initialize PostgresHook
