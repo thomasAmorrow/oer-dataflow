@@ -214,7 +214,7 @@ def load_OBIS_table_csv():
             depth,
             eventDate,
             eventID,
-            footprintWKT GEOMETRY,
+            footprintWKT,
             identificationReferences,
             identificationRemarks,
             infrakingdom,
