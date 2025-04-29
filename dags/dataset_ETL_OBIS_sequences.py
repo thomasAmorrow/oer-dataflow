@@ -24,12 +24,12 @@ def fetch_OBIS_table():
         obisdata.to_csv('/mnt/bucket/output.csv', index=False)
 
     logging.info(f"Looking for /mnt/bucket/output.csv...")
-    if os.path.exists(f"/mnt/bucket/output.csv"):
+    if os.path.exists("/mnt/bucket/output.csv"):
         logging.info("Download successful!")
 
         # Input and output file paths
-        input_file = f"/mnt/bucket/output.csv"
-        output_file = f"/mnt/bucket/cleaned_NR117.csv"
+        input_file = "/mnt/bucket/output.csv"
+        output_file = "/mnt/bucket/cleaned_NR117.csv"
 
         # Check if the file exists before processing
         if not os.path.exists(input_file):
