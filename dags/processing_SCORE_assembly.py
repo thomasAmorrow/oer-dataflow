@@ -188,7 +188,7 @@ derez_scores_to_parents= PostgresOperator(
             occurrence_score_sum / num_children AS occurrence_score,
             chemistry_score_sum / num_children AS chemistry_score,
             geology_score_sum / num_children AS geology_score,
-            edna_score_sum / num_children AS edna_score,
+            edna_score_sum / num_children AS edna_score
         FROM hex_03_stats h
         JOIN child_counts c ON h.hex_03 = c.hex_03;
 
