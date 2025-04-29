@@ -315,7 +315,7 @@ def load_OBIS_table_csv():
             megaclassid
         )
         FROM '/mnt/bucket/cleaned_NR117.csv'
-        WITH (FORMAT csv, HEADER true, DELIMITER E',', QUOTE '"'); 
+        WITH (FORMAT csv, HEADER true); 
     """
 
     # Initialize PostgresHook
