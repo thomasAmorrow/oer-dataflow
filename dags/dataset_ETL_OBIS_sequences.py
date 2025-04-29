@@ -29,7 +29,7 @@ def fetch_OBIS_table():
 
         # Input and output file paths
         input_file = "/mnt/bucket/output.csv"
-        output_file = "/mnt/bucket/cleaned_NR117.csv"
+        output_file = "/mnt/bucket/cleaned_NR151.csv"
 
         # Check if the file exists before processing
         if not os.path.exists(input_file):
@@ -47,8 +47,8 @@ def fetch_OBIS_table():
             for row in reader:
                 try:    
                     # Check if the number of fields is 50
-                    print(f"Row length: {len(row)}")  # Debugging
-                    if len(row) == 117:
+                    #print(f"Row length: {len(row)}")  # Debugging
+                    if len(row) == 151:
                         # Create a new row with quotes around most fields, except for fields 22 and 23
                         processed_row = [
                             field  
@@ -130,7 +130,7 @@ def load_OBIS_table_csv():
             subphylumid TEXT,
             taxonRank TEXT,
             id UUID PRIMARY KEY,
-            dataset_id TEXT,
+            datasetID TEXT,
             node_id TEXT,
             dropped TEXT,
             absence TEXT,
@@ -160,7 +160,6 @@ def load_OBIS_table_csv():
             superfamilyid TEXT,
             associatedOccurrences TEXT,
             associatedSequences TEXT,
-            datasetID TEXT,
             geodeticDatum TEXT,
             locationID TEXT,
             nameAccordingTo TEXT,
@@ -192,8 +191,44 @@ def load_OBIS_table_csv():
             parvphylum TEXT,
             parvphylumid TEXT,
             megaclass TEXT,
-            megaclassid TEXT
+            megaclassid TEXT,
+            -- Additional fields from your list not in original CREATE TABLE
+            subterclass TEXT,
+            subterclassid TEXT,
+            associatedReferences TEXT,
+            infraorder TEXT,
+            infraorderid TEXT,
+            ownerInstitutionCode TEXT,
+            stateProvince TEXT,
+            gigaclass TEXT,
+            gigaclassid TEXT,
+            collectionID TEXT,
+            continent TEXT,
+            countryCode TEXT,
+            fieldNumber TEXT,
+            identifiedBy TEXT,
+            identifiedByID TEXT,
+            individualCount INTEGER,
+            institutionID TEXT,
+            occurrenceRemarks TEXT,
+            preparations TEXT,
+            recordedByID TEXT,
+            type TEXT,
+            verbatimDepth TEXT,
+            dateIdentified TEXT,
+            lifeStage TEXT,
+            sex TEXT,
+            parvorder TEXT,
+            parvorderid TEXT,
+            section TEXT,
+            sectionid TEXT,
+            subsection TEXT,
+            subsectionid TEXT,
+            identificationQualifier TEXT,
+            subspecies TEXT,
+            subspeciesid TEXT
         );
+
 
 
         COPY obis_sequences (
@@ -251,7 +286,7 @@ def load_OBIS_table_csv():
             subphylumid,
             taxonRank,
             id,
-            dataset_id,
+            datasetID,
             node_id,
             dropped,
             absence,
@@ -281,7 +316,6 @@ def load_OBIS_table_csv():
             superfamilyid,
             associatedOccurrences,
             associatedSequences,
-            datasetID,
             geodeticDatum,
             locationID,
             nameAccordingTo,
@@ -313,9 +347,43 @@ def load_OBIS_table_csv():
             parvphylum,
             parvphylumid,
             megaclass,
-            megaclassid
+            megaclassid,
+            subterclass,
+            subterclassid,
+            associatedReferences,
+            infraorder,
+            infraorderid,
+            ownerInstitutionCode,
+            stateProvince,
+            gigaclass,
+            gigaclassid,
+            collectionID,
+            continent,
+            countryCode,
+            fieldNumber,
+            identifiedBy,
+            identifiedByID,
+            individualCount,
+            institutionID,
+            occurrenceRemarks,
+            preparations,
+            recordedByID,
+            type,
+            verbatimDepth,
+            dateIdentified,
+            lifeStage,
+            sex,
+            parvorder,
+            parvorderid,
+            section,
+            sectionid,
+            subsection,
+            subsectionid,
+            identificationQualifier,
+            subspecies,
+            subspeciesid
         )
-        FROM '/mnt/bucket/cleaned_NR117.csv'
+        FROM '/mnt/bucket/cleaned_NR151.csv'
         WITH (FORMAT csv, HEADER true); 
     """
 
