@@ -147,3 +147,5 @@ load_geojson_to_postgres = PythonOperator(
     provide_context=True,
     dag=dag
 )
+
+fetch_WCSD_footprints >> load_geojson_to_postgres
