@@ -192,7 +192,6 @@ def load_OBIS_table_csv():
             parvphylumid TEXT,
             megaclass TEXT,
             megaclassid TEXT,
-            -- Additional fields from your list not in original CREATE TABLE
             subterclass TEXT,
             subterclassid TEXT,
             associatedReferences TEXT,
@@ -384,7 +383,7 @@ def load_OBIS_table_csv():
             subspeciesid
         )
         FROM '/mnt/bucket/cleaned_NR151.csv'
-        WITH (FORMAT csv, HEADER true, DELIMITER E',', QUOTE '"'); 
+        WITH (FORMAT csv, HEADER true, QUOTE '"'); 
     """
 
     # Initialize PostgresHook
