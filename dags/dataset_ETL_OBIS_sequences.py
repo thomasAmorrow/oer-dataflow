@@ -40,14 +40,14 @@ def fetch_OBIS_table():
             open(output_file, 'w', newline='', encoding='utf-8') as outfile:
             
             # Create a CSV reader and writer
-            reader = csv.reader(infile, delimiter='\t')
+            reader = csv.reader(infile, delimiter=',', quotechar='"', quoting=csv.QUOTE_MINIMAL)
             writer = csv.writer(outfile, delimiter='\t', quotechar='"', quoting=csv.QUOTE_MINIMAL)
 
             # Process each row
             for row in reader:
                 try:    
                     # Check if the number of fields is 50
-                    if len(row) == 94:
+                    if len(row) == 117:
                         # Create a new row with quotes around most fields, except for fields 22 and 23
                         processed_row = [
                             field  
@@ -168,7 +168,30 @@ def load_OBIS_table_csv():
             verbatimIdentification TEXT,
             waterBody TEXT,
             subclass TEXT,
-            subclassid TEXT
+            subclassid TEXT,
+            infraclass TEXT,
+            infraclassid TEXT,
+            superclass TEXT,
+            superclassid TEXT,
+            superorder TEXT,
+            superorderid TEXT,
+            datasetName TEXT,
+            day TEXT,
+            endDayOfYear TEXT,
+            eventTime TEXT,
+            license TEXT,
+            maximumDistanceAboveSurfaceInMeters TEXT,
+            minimumDistanceAboveSurfaceInMeters TEXT,
+            month TEXT,
+            recordNumber TEXT,
+            startDayOfYear TEXT,
+            year TEXT,
+            unaccepted TEXT,
+            scientificNameAuthorship TEXT,
+            parvphylum TEXT,
+            parvphylumid TEXT,
+            megaclass TEXT,
+            megaclassid TEXT
         );
 
 
@@ -191,7 +214,7 @@ def load_OBIS_table_csv():
             depth,
             eventDate,
             eventID,
-            footprintWKT,
+            footprintWKT GEOMETRY,
             identificationReferences,
             identificationRemarks,
             infrakingdom,
@@ -266,7 +289,30 @@ def load_OBIS_table_csv():
             verbatimIdentification,
             waterBody,
             subclass,
-            subclassid 
+            subclassid,
+            infraclass,
+            infraclassid,
+            superclass,
+            superclassid,
+            superorder,
+            superorderid,
+            datasetName,
+            day,
+            endDayOfYear,
+            eventTime,
+            license,
+            maximumDistanceAboveSurfaceInMeters,
+            minimumDistanceAboveSurfaceInMeters,
+            month,
+            recordNumber,
+            startDayOfYear,
+            year,
+            unaccepted,
+            scientificNameAuthorship,
+            parvphylum,
+            parvphylumid,
+            megaclass,
+            megaclassid
         )
         FROM '/mnt/bucket/cleaned_NR94.csv'
         WITH (FORMAT csv, HEADER true, DELIMITER E'\t', QUOTE '"'); 
