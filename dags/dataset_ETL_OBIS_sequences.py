@@ -41,7 +41,7 @@ def fetch_OBIS_table():
             
             # Create a CSV reader and writer
             reader = csv.reader(infile, delimiter=',', quotechar='"', quoting=csv.QUOTE_MINIMAL)
-            writer = csv.writer(outfile, delimiter=',', quotechar='"', quoting=csv.QUOTE_ALL)
+            writer = csv.writer(outfile, delimiter=',', quotechar='"', quoting=csv.QUOTE_MINIMAL)
 
             # Process each row
             for row in reader:
