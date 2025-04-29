@@ -384,7 +384,7 @@ def load_OBIS_table_csv():
             subspeciesid
         )
         FROM '/mnt/bucket/cleaned_NR151.csv'
-        WITH (FORMAT csv, HEADER true); 
+        WITH (FORMAT csv, HEADER true, QUOTE '"'); 
     """
 
     # Initialize PostgresHook
