@@ -16,14 +16,11 @@ csv.field_size_limit(sys.maxsize)
 
 def fetch_OBIS_table():
 
+    # get OBIS data for DNA sequences and depths >200m
+    obisdata = occ.search(hasextensions="DNADerivedData", startdepth=200, enddepth=12000).execute()
+    obisdata.to_csv('/mnt/bucket/output.csv', index=False)
+
     logging.info(f"Looking for /mnt/bucket/output.csv...")
-
-    if os.path.exists(f"/mnt/bucket/output.csv"):  # temporary because we don't want to wait for the re-do during dev
-        return
-    else:
-        obisdata = occ.search(hasextensions="DNADerivedData", startdepth=200, enddepth=12000).execute()
-        obisdata.to_csv('output.csv', index=False)
-
     if os.path.exists(f"/mnt/bucket/output.csv"):
         logging.info("Download successful!")
 
