@@ -54,10 +54,10 @@ def load_geojson_to_postgres():
 
     # Optionally drop and recreate the table
     cursor.execute("""
-        DROP TABLE IF EXISTS sonar_lines;
+        DROP TABLE IF EXISTS wcsd_lines;
                    
-        CREATE TABLE sonar_lines (
-            id SERIAL PRIMARY KEY,
+        CREATE TABLE wcsd_lines (
+            wcsdid SERIAL PRIMARY KEY,
             objectid INTEGER,
             cruise_name TEXT,
             dataset_name TEXT,
@@ -78,7 +78,7 @@ def load_geojson_to_postgres():
     conn.commit()
 
     insert_sql = """
-        INSERT INTO sonar_lines (
+        INSERT INTO wcsd_lines (
             objectid, cruise_name, dataset_name, platform_name,
             departure_port, arrival_port, instrument_name, frequency,
             citation_link, cloud_path, shape_length, start_date,
