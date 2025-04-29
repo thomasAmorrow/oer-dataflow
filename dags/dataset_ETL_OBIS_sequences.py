@@ -47,6 +47,7 @@ def fetch_OBIS_table():
             for row in reader:
                 try:    
                     # Check if the number of fields is 50
+                    print(f"Row length: {len(row)}")  # Debugging
                     if len(row) == 117:
                         # Create a new row with quotes around most fields, except for fields 22 and 23
                         processed_row = [
