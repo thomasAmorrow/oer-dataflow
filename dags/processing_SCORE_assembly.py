@@ -77,6 +77,14 @@ create_primary_SCORE_table= PostgresOperator(
     FROM imlgs
     WHERE ega_score_05.hex_05 = imlgs.hex_05;
 
+    ALTER TABLE ega_score_05
+    ADD COLUMN edna_score FLOAT;
+
+    UPDATE ega_score_05
+    SET edna_score = 1
+    FROM obis_sequences
+    WHERE ega_score_05.hex_05 = obis_sequences.hex_05;
+
     """,
     dag=dag,
 )
