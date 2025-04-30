@@ -171,7 +171,7 @@ points_to_hex_table= PostgresOperator(
         )
         SELECT wcsdid, 
             point,
-            h3_lat_lng_to_cell(point, 5) AS h3_cell_id 
+            h3_lat_lng_to_cell(point, 5) AS hex_05
         FROM points;
         """,
     dag=dag
