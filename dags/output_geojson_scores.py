@@ -89,6 +89,7 @@ def generate_geojson():
 
             # Check if the polygon crosses the antimeridian
             if crosses_antimeridian(geo):
+                geojson_boundary2 = []
                 # Adjust the boundary coordinates if they cross the antimeridian
                 #geojson_boundary1, geojson_boundary2 = adjust_longitudes_if_crosses_antimeridian(geo)
                 geojson_boundary1 = adjust_longitudes_if_crosses_antimeridian(geo)
