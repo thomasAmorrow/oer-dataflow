@@ -55,7 +55,7 @@ def fetch_data_from_pg(hexrez):
     pg_hook = PostgresHook(postgres_conn_id="oceexp-db")
     conn = pg_hook.get_conn()
     cursor = conn.cursor()
-    cursor.execute(f"SELECT hex_{hexrez}, COALESCE(combined_score,0), COALESCE(mapping_score,0), COALESCE(occurrence_score,0), COALESCE(chemistry_score,0), COALESCE(geology_score,0), COALESCE(edna_score,0) FROM ega_score_{hexrez}")
+    cursor.execute(f"SELECT hex_{hexrez}, COALESCE(combined_score,0), COALESCE(mapping_score,0), COALESCE(occurrence_score,0), COALESCE(chemistry_score,0), COALESCE(geology_score,0), COALESCE(edna_score,0), COALESCE(wcsd_score,0) FROM ega_score_{hexrez}")
     rows = cursor.fetchall()
     cursor.close()
     conn.close()
@@ -117,7 +117,8 @@ def generate_geojson():
                         "chemistry": chemistry_score,
                         "geology": geology_score,
                         "occurrence": occurrence_score,
-                        "edna_score": edna_score
+                        "edna_score": edna_score,
+                        "wcsd_score": wcsd_score
                     }
                 }
 
@@ -137,7 +138,8 @@ def generate_geojson():
                             "chemistry": chemistry_score,
                             "geology": geology_score,
                             "occurrence": occurrence_score,
-                            "edna_score": edna_score
+                            "edna_score": edna_score,
+                            "wcsd_score": wcsd_score
                         }
                     }
 
@@ -164,7 +166,8 @@ def generate_geojson():
                         "chemistry": chemistry_score,
                         "geology": geology_score,
                         "occurrence": occurrence_score,
-                        "edna_score": edna_score
+                        "edna_score": edna_score,
+                        "wcsd_score": wcsd_score
                     }
                 }
 
@@ -186,7 +189,8 @@ def generate_geojson():
                     "chemistry": chemistry_score,
                     "geology": geology_score,
                     "occurrence": occurrence_score,
-                    "edna_score": edna_score
+                    "edna_score": edna_score,
+                    "wcsd_score": wcsd_score
                 }
             }
 
