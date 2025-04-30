@@ -10,34 +10,42 @@ import time
 def crosses_antimeridian(boundary):
     """Check if the polygon crosses the antimeridian."""
     longitudes = [lng for lat, lng in boundary]
-    return any(lng <= -180 and longitudes[i+1] > 180 or lng >= 180 and longitudes[i+1] < -180
+    return any(lng <= -90 and longitudes[i+1] > 90 or lng >= 90 and longitudes[i+1] < -90
                for i, lng in enumerate(longitudes[:-1]))
 
 # Function to adjust the boundary if it crosses the antimeridian
+# this is really ugly for now but need to see if it works for ArcGIS exports
 def adjust_longitudes_if_crosses_antimeridian(boundary):
     first_half = []
-    second_half = []
-    intersection_points = []
+    #second_half = []
+    #intersection_points = []
 
     for i, (lat, lng) in enumerate(boundary):
-        next_lat, next_lng = boundary[(i + 1) % len(boundary)]  # next point, cyclically
-
-        # Handle edges crossing the meridian
-        if (lng <= -180 and next_lng >= 180) or (lng >= 180 and next_lng <= -180):
-            intersection_point = [lat, 180 if lng < 0 else -180]
-            intersection_points.append(intersection_point)
 
         if lng < 0:
-            first_half.append([lat, lng])
+            first_half.append([lat, lng + 360])
         else:
-            second_half.append([lat, lng])
+            first_half.appendd([lat, lng])
+        
+        #next_lat, next_lng = boundary[(i + 1) % len(boundary)]  # next point, cyclically
+
+        # Handle edges crossing the meridian
+        #if (lng <= -180 and next_lng >= 180) or (lng >= 180 and next_lng <= -180):
+        #    intersection_point = [lat, 180 if lng < 0 else -180]
+        #    intersection_points.append(intersection_point)
+
+        #if lng < 0:
+        #    first_half.append([lat, lng])
+        #else:
+        #    second_half.append([lat, lng])
 
     # Insert intersection points if they exist
-    if intersection_points:
-        first_half.append(intersection_points[0])
-        second_half.insert(0, intersection_points[1])
+    #if intersection_points:
+    #    first_half.append(intersection_points[0])
+    #    second_half.insert(0, intersection_points[1])
 
-    return first_half, second_half
+    #return first_half, second_half
+    return first_half
 
 # Function to check if a polygon is closed
 def close_polygon(polygon):
@@ -82,11 +90,13 @@ def generate_geojson():
             # Check if the polygon crosses the antimeridian
             if crosses_antimeridian(geo):
                 # Adjust the boundary coordinates if they cross the antimeridian
-                geojson_boundary1, geojson_boundary2 = adjust_longitudes_if_crosses_antimeridian(geo)
+                #geojson_boundary1, geojson_boundary2 = adjust_longitudes_if_crosses_antimeridian(geo)
+                geojson_boundary1 = adjust_longitudes_if_crosses_antimeridian(geo)
 
                 # Convert to GeoJSON [lng, lat] order (flip back lat/lng)
                 geojson_boundary1 = [[lng, lat] for lat, lng in geojson_boundary1]
-                geojson_boundary2 = [[lng, lat] for lat, lng in geojson_boundary2]
+                if geojson_boundary2:
+                    geojson_boundary2 = [[lng, lat] for lat, lng in geojson_boundary2]
 
                 # Ensure the polygons are closed
                 try:
@@ -95,11 +105,12 @@ def generate_geojson():
                     print(f"Skipping invalid polygon (boundary1): {e}")
                     continue
 
-                try:
-                    geojson_boundary2 = close_polygon(geojson_boundary2)
-                except ValueError as e:
-                    print(f"Skipping invalid polygon (boundary2): {e}")
-                    continue
+                if geojson_boundary2:
+                    try:
+                        geojson_boundary2 = close_polygon(geojson_boundary2)
+                    except ValueError as e:
+                        print(f"Skipping invalid polygon (boundary2): {e}")
+                        continue
 
                 # Create two separate GeoJSON features for the two halves of the split polygon
 
