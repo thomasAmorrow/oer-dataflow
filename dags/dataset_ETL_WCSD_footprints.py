@@ -156,6 +156,8 @@ points_to_hex_table= PostgresOperator(
     task_id='points_to_hex_table',
     postgres_conn_id='oceexp-db',
     sql="""
+        DROP TABLE IF EXISTS wcsd_footprints;
+
         CREATE TABLE wcsd_footprints AS
         WITH line_length AS (
             SELECT wcsdid, 
