@@ -55,5 +55,12 @@ with DAG(
         wait_for_completion=True,
         reset_dag_run=True,
     )
+
+    trigger_wcsd = TriggerDagRunOperator(
+        task_id='trigger_wcsd_dag',
+        trigger_dag_id='dataset_ETL_WCSD_footprints',
+        wait_for_completion=True,
+        reset_dag_run=True,
+    )
     # Set execution order: GLODAP -> GEBCO -> OSM
-    trigger_glodap >> trigger_gebco >> trigger_gbif >> trigger_imlgs
+    trigger_glodap >> trigger_gebco >> trigger_gbif >> trigger_imlgs >> trigger_wcsd
