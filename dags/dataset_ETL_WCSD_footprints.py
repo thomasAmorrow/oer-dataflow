@@ -150,4 +150,30 @@ load_geojson_to_postgres = PythonOperator(
     dag=dag
 )
 
-fetch_WCSD_footprints >> load_geojson_to_postgres
+# Task: propagate scores upwards
+points_to_hex_table= PostgresOperator(
+    task_id='points_to_hex_table',
+    postgres_conn_id='oceexp-db',
+    sql="""
+        CREATE TABLE wcsd_footprints AS
+        WITH line_length AS (
+            SELECT wcsdid, 
+                ST_Length(geom) AS line_length
+            FROM wcsd_lines
+        ),
+        points AS (
+            SELECT wcsd_lines.wcsdid,
+                ST_LineInterpolatePoint((ST_Dump(wcsd_lines.geom)).geom, loc / line_length.line_length) AS point
+            FROM wcsd_lines
+            JOIN line_length ON wcsd_lines.wcsdid = line_length.wcsdid
+            CROSS JOIN generate_series(0, (line_length.line_length / 500)::int) AS loc
+        )
+        SELECT wcsdid, 
+            point,
+            h3_lat_lng_to_cell(point, 5) AS h3_cell_id 
+        FROM points;
+        """,
+    dag=dag
+)
+
+fetch_WCSD_footprints >> load_geojson_to_postgres >> points_to_hex_table
