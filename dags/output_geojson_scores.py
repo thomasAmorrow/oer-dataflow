@@ -73,7 +73,7 @@ def generate_geojson():
         featurespoint = []
 
         for row in rows:
-            h3_index, combined_score, mapping_score, occurrence_score, chemistry_score, geology_score, edna_score = row
+            h3_index, combined_score, mapping_score, occurrence_score, chemistry_score, geology_score, edna_score, wcsd_score = row
 
             # Get the boundary coordinates for the H3 cell
             geo = h3.cell_to_boundary(h3_index)
