@@ -25,7 +25,7 @@ def adjust_longitudes_if_crosses_antimeridian(boundary):
         if lng < 0:
             first_half.append([lat, lng + 360])
         else:
-            first_half.appendd([lat, lng])
+            first_half.append([lat, lng])
         
         #next_lat, next_lng = boundary[(i + 1) % len(boundary)]  # next point, cyclically
 
