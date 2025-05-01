@@ -63,9 +63,9 @@ def process_and_identify_hexagons(extracted_folder, output_csv):
     print("...done")
     
     # Reproject to WGS 84 if the CRS isn't already EPSG:4326
-    if gdf.crs != 'EPSG:4326':
-        gdf = gdf.to_crs(epsg=4326)
-        print("Reprojected GeoDataFrame to EPSG:4326")
+    if gdf.crs != 'EPSG:3857':
+        gdf = gdf.to_crs(epsg=3857)
+        #print("Reprojected GeoDataFrame to EPSG:4326")
 
     # Identify water hexagons and save to CSV
     waterhexes = set()  # Initialize an empty set to store unique hexes
@@ -154,6 +154,7 @@ create_h3_primary = PostgresOperator(
         ALTER TABLE h3_oceans
         ADD PRIMARY KEY (hex_05);
 
+         DROP TABLE IF EXISTS hex_ocean_polys_04; 
 
     """,
 )
