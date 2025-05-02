@@ -42,7 +42,7 @@ Refer to Airflow documentation for specifics about setting up an Airflow environ
 
 # Contributions
 
-The Exploration Gap Analysis is developed and maintained by the NOAA Ocean Exploration Data Lab in the Science and Technology Division of NOAA Ocean Exploration. For questions, comments, or concerns, please reach out to NOAA Ocean Exploration.
+The Exploration Gap Analysis is developed and maintained by the NOAA Ocean Exploration Data Lab in the Science and Technology Division of NOAA Ocean Exploration, along with contributions from the ocean exploration community and the public. For questions, comments, or concerns, please reach out to NOAA Ocean Exploration.
 
 **Interested in contributing? Feel like we're missing a critical set of publicly available observations that contribute to exploration of the unknown deep ocean? Reach out to us, or join us in developing this tool!**
 
