@@ -1,4 +1,6 @@
-<img src="https://github.com/thomasAmorrow/oer-ega/blob/main/docs/logos/logo.png?raw=true" alt="vlogo" width="400"/>
+<p align="center">
+  <img src="https://github.com/thomasAmorrow/oer-ega/blob/main/docs/logos/logo.png?raw=true" alt="vlogo" width="400"/>
+</p>
 
 # Exploration Gap Analysis
 
