@@ -150,8 +150,9 @@ create_h3_primary = PostgresOperator(
         ALTER TABLE h3_oceans
         RENAME COLUMN h3_index TO hex_05;
 
-        ALTER TABLE h3_oceans 
-        ALTER COLUMN hex_05 TYPE H3Index;
+        ALTER TABLE your_table_name
+        ALTER COLUMN hex_05 TYPE H3INDEX
+        USING hex_05::H3INDEX;
 
         ALTER TABLE h3_oceans
         ADD PRIMARY KEY (hex_05);
