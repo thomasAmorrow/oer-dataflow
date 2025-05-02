@@ -145,7 +145,7 @@ create_h3_primary = PostgresOperator(
         DROP TABLE IF EXISTS h3_oceans;
 
         CREATE TABLE h3_oceans AS 
-        hex_ocean_polys_05;
+        TABLE hex_ocean_polys_05;
 
         ALTER TABLE h3_oceans
         RENAME COLUMN h3_index TO hex_05;
