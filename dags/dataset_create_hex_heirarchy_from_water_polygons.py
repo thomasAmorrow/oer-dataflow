@@ -72,7 +72,7 @@ def process_and_identify_hexagons(extracted_folder, output_csv):
     for geom in gdf.geometry:
         geojson = geom.__geo_interface__  # Convert the geometry to GeoJSON format
         h3shp = h3.geo_to_h3shape(geojson)
-        hexes = h3.polygon_to_cells_experimental(h3shp,4,'overlap')
+        hexes = h3.polygon_to_cells_experimental(h3shp,5,'overlap')
         #hexes = h3.geo_to_cells(geojson, 4)  # Adjust resolution as needed
         waterhexes.update(hexes)  # Update the waterhexes set with the result
     
@@ -144,22 +144,33 @@ create_h3_primary = PostgresOperator(
         
         DROP TABLE IF EXISTS h3_oceans;
 
-        CREATE TABLE h3_oceans AS
-        SELECT
-            hex_05
-        FROM
-            hex_ocean_polys_04,
-            LATERAL H3_Cell_to_Children(CAST("h3_index" AS H3Index), 5) AS hex_05;
+        CREATE TABLE h3_oceans AS 
+        hex_ocean_polys_05;
+
+        ALTER TABLE h3_oceans
+        RENAME COLUMN h3_index TO hex_05;
+
+        ALTER TABLE h3_oceans 
+        ALTER COLUMN hex_05 h3index;
 
         ALTER TABLE h3_oceans
         ADD PRIMARY KEY (hex_05);
 
-        DROP TABLE IF EXISTS hex_ocean_polys_04; 
 
     """,
 )
 
-#         DROP TABLE IF EXISTS hex_ocean_polys_04; 
+#        CREATE TABLE h3_oceans AS
+#        SELECT
+#            hex_05
+#        FROM
+#            hex_ocean_polys_04,
+#            LATERAL H3_Cell_to_Children(CAST("h3_index" AS H3Index), 5) AS hex_05;
+
+#        ALTER TABLE h3_oceans
+#        ADD PRIMARY KEY (hex_05);
+
+#        DROP TABLE IF EXISTS hex_ocean_polys_04; 
 
 
 # Task: Create the h3_children table
