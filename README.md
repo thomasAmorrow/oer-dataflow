@@ -2,7 +2,7 @@
   <img src="https://github.com/thomasAmorrow/oer-ega/blob/main/docs/logos/logo_banner.png?raw=true" alt="vlogo" width="800"/>
 </p>
 
-
+[![Version](https://img.shields.io/badge/version-pre--release--alpha-orange)]()
 [![Docker](https://img.shields.io/badge/docker-ready-blue?logo=docker)](https://www.docker.com/)
 [![Airflow](https://img.shields.io/badge/orchestrator-Airflow-017CEE?logo=apache-airflow)](https://airflow.apache.org/)
 [![PostGIS](https://img.shields.io/badge/database-PostGIS-green?logo=postgresql)](https://postgis.net/)
@@ -12,6 +12,8 @@
 ##  Overview
 
  The **NOAA Ocean Exploration Gap Analysis (EGA)** is a tool to establish a spatial coverage baseline for ocean exploration data holdings, support the monitoring of exploration and characterization progress on previously unexplored ocean areas, and aid in the identification of priority areas for future expeditions and data collection efforts. At its core, the EGA is a PostGIS database synthesizing deep sea scientific observations from publicly available data archives.
+
+ The current version is pre-release and still in development.
 
 ## 📑 Table of Contents
 
