@@ -46,7 +46,7 @@ Averaging these per type yields a composite score. Scores at coarser H3 resoluti
 | Environmental DNA (eDNA) Sequences           | [OBIS](https://obis.org)                                                |
 | Water Biogeochemical Samples                 | [GLODAP](https://www.glodap.info)                                       |
 | Seafloor Bathymetry Coverage (ID grid)       | [GEBCO](https://www.gebco.net)                                          |
-| Water Column Sonar Data                      | [NCEI Sonar](https://www.ncei.noaa.gov/products/water-column-sonar-data) |
+| Water Column Sonar Data                      | [NCEI Water Column Sonar](https://www.ncei.noaa.gov/products/water-column-sonar-data) |
 
 More types are in development and will be added in future releases.
 
