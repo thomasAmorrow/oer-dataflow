@@ -68,7 +68,11 @@ EGA is deployed using **Docker Compose**, currently on **Ubuntu AWS EC2**, thoug
 
 ## 🖼️ Visuals
 
-_Visualizations and screenshots of EGA results coming soon!_
+<p align="center">
+  <img src="https://github.com/thomasAmorrow/oer-ega/blob/main/docs/maps/ReesultsMap.png?raw=true" alt="vlogo" width="600"/>
+</p>
+
+GeoJSON results files can be visualized using a number of different tools. Here in ArcGIS Pro we show the nested heirarchy structure of level 5 resolution hexagons (upper) and level 4 resolution hexagons (lower). Composite scoring in the coarser hexagons depends on their contents and completely unexplored hexagons are highlighted as the highest priority for future exploration work.
 
 > 📌 If you generate a compelling visualization or want to share use cases, submit a PR or email us to feature it here!
 
