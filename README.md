@@ -3,11 +3,12 @@
 </p>
 
 [![Version](https://img.shields.io/badge/version-pre--release--alpha-orange)]()
+[![NOAA Ocean Exploration](https://img.shields.io/badge/NOAA%20Ocean%20Exploration-005493)](https://oceanexplorer.noaa.gov)
 [![Docker](https://img.shields.io/badge/docker-ready-blue?logo=docker)](https://www.docker.com/)
 [![Airflow](https://img.shields.io/badge/orchestrator-Airflow-017CEE?logo=apache-airflow)](https://airflow.apache.org/)
 [![PostGIS](https://img.shields.io/badge/database-PostGIS-green?logo=postgresql)](https://postgis.net/)
 [![License: GPL v3](https://img.shields.io/badge/license-GPL--3.0-blue.svg)](https://www.gnu.org/licenses/gpl-3.0.en.html)
-[![NOAA Ocean Exploration](https://img.shields.io/badge/NOAA%20Ocean%20Exploration-005493)](https://oceanexplorer.noaa.gov)
+
 
 ##  Overview
 
