@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="https://github.com/thomasAmorrow/oer-ega/blob/main/docs/logos/logo.png?raw=true" alt="vlogo" width="400"/>
+  <img src="https://github.com/thomasAmorrow/oer-ega/blob/main/docs/logos/logo_banner.png?raw=true" alt="vlogo" width="800"/>
 </p>
 
 # Exploration Gap Analysis
