@@ -159,7 +159,7 @@ default_args = {
 }
 
 dag = DAG(
-    'dataset_ETL_IMLGS_obs',
+    'dataset_ETL_IMLGS',
     default_args=default_args,
     description='Fetch samples from IMLGS, save to PostgreSQL, assign hexes',
     schedule_interval=None,
