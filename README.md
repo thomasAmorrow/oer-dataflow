@@ -9,10 +9,13 @@
 [![License: GPL v3](https://img.shields.io/badge/license-GPL--3.0-blue.svg)](https://www.gnu.org/licenses/gpl-3.0.en.html)
 [![NOAA Ocean Exploration](https://img.shields.io/badge/NOAA-Ocean%20Exploration-005493)](https://oceanexplorer.noaa.gov)
 
+##  Overview
+
+ The **NOAA Ocean Exploration Gap Analysis (EGA)** is a tool to establish a spatial coverage baseline for ocean exploration data holdings, support the monitoring of exploration and characterization progress on previously unexplored ocean areas, and aid in the identification of priority areas for future expeditions and data collection efforts. At its core, the EGA is a PostGIS database synthesizing deep sea scientific observations from publicly available data archives.
 
 ## 📑 Table of Contents
 
-- [Overview](#noaa-ocean-exploration-gap-analysis-ega)
+- [Overview](#overview)
 - [Methods and Tools](#-methods-and-tools)
 - [Inputs and Outputs](#-inputs-and-outputs)
 - [Installation and Usage](#-installation-and-usage)
@@ -24,12 +27,12 @@
 
 The **EGA** leverages containerized workflows, orchestrated using **Apache Airflow**, with processing steps written in **Python** and **SQL**. All tasks are managed via lightweight Airflow workers.
 
-Spatial data are indexed using the **H3 hexagonal grid system** at resolution 5 (~3.5 km hex width). Each hexagon receives an **Exploration Score** based on the presence or absence of observation types deeper than 200 m:
+Spatial data are indexed using the **H3 hexagonal grid system** at resolution 5. Each hexagon receives an **Exploration Score** based on the presence or absence of observation types deeper than 200 m:
 
 - Score **1**: Observation type is present
 - Score **0**: Observation type is absent
 
-Averaging these per type yields a composite score. Scores at coarser H3 resolutions (4 and 3) are computed by aggregating child hex scores to generate a global "heatmap" of exploration status.
+Averaging these per observation type yields a composite score. Scores at coarser H3 resolutions (4 and 3) are computed by aggregating child hex scores to generate a global "heatmap" of exploration status.
 
 ---
 
