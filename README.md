@@ -2,7 +2,7 @@
   <img src="https://github.com/thomasAmorrow/oer-ega/blob/main/docs/logos/logo_banner.png?raw=true" alt="vlogo" width="800"/>
 </p>
 
-[![Version](https://img.shields.io/badge/version-pre--release--alpha-orange)]()
+[![Version](https://img.shields.io/badge/version-pre--release%20alpha-orange)]()
 [![NOAA Ocean Exploration](https://img.shields.io/badge/NOAA%20Ocean%20Exploration-005493)](https://oceanexplorer.noaa.gov)
 [![Docker](https://img.shields.io/badge/docker-ready-blue?logo=docker)](https://www.docker.com/)
 [![Airflow](https://img.shields.io/badge/orchestrator-Airflow-017CEE?logo=apache-airflow)](https://airflow.apache.org/)
