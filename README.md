@@ -23,7 +23,7 @@
 - [Contributions](#-contributions)
 - [Future Development](#-future-development)
 
-## 🔧 Methods and Tools
+## Methods and Tools
 
 The **EGA** leverages containerized workflows, orchestrated using **Apache Airflow**, with processing steps written in **Python** and **SQL**. All tasks are managed via lightweight Airflow workers.
 
@@ -36,7 +36,7 @@ Averaging these per observation type yields a composite score. Scores at coarser
 
 ---
 
-## 📥 Inputs and 📤 Outputs
+## Inputs and Outputs
 
 ### Inputs
 
@@ -58,7 +58,7 @@ More types are in development and will be added in future releases.
 
 ---
 
-## 🚀 Installation and Usage
+## Installation and Usage
 
 EGA is deployed using **Docker Compose**, currently on **Ubuntu AWS EC2**, though it's compatible with any Docker-ready environment.
 
@@ -69,7 +69,7 @@ EGA is deployed using **Docker Compose**, currently on **Ubuntu AWS EC2**, thoug
 
 ---
 
-## 🖼️ Visuals
+## Visuals
 
 <p align="center">
   <img src="https://github.com/thomasAmorrow/oer-ega/blob/main/docs/maps/ResultsMap.png?raw=true" alt="vlogo" width="600"/>
@@ -81,7 +81,7 @@ GeoJSON results files can be visualized using a number of different tools. Here 
 
 ---
 
-## 🤝 Contributions
+## Contributions
 
 This project is maintained by the **NOAA Ocean Exploration Data Lab** (Science & Technology Division) with help from the broader community.
 
@@ -92,7 +92,7 @@ Have data? Ideas? Feedback? Help us improve our understanding of the unknown dee
 
 ---
 
-## 🔮 Future Development
+## Future Development
 
 The `dev` branch is the most active—follow for updates. Upcoming milestones include:
 
