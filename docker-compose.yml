@@ -56,6 +56,7 @@ services:
       POSTGRES_DB: ${OCEEXP_POSTGRES_DB}
     volumes:
       - ./bucket:/mnt/bucket
+      - ./s3bucket:/mnt/s3bucket  # Mount the shared s3 volume in the worker container
       - ./database:/var/lib/postgresql/data
     healthcheck:
       test: ["CMD", "pg_isready", "-U", "admin"]
@@ -155,6 +156,7 @@ services:
       - ${AIRFLOW_PROJ_DIR:-.}/config:/opt/airflow/config
       - ${AIRFLOW_PROJ_DIR:-.}/plugins:/opt/airflow/plugins
       - ./bucket:/mnt/bucket  # Mount the shared volume in the worker container
+      - ./s3bucket:/mnt/s3bucket  # Mount the shared s3 volume in the worker container
     restart: always
     depends_on:
       <<: *airflow-common-depends-on
@@ -268,6 +270,15 @@ services:
       <<: *airflow-common-depends-on
       airflow-init:
         condition: service_completed_successfully
+
+  webmap:
+    image: nginx:alpine
+    ports:
+      - "8090:80"
+    volumes:
+      - ./build:/usr/share/nginx/html
+    restart: always
+
 
 volumes:
   postgres-db-volume:

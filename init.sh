@@ -12,3 +12,13 @@ echo -e "AIRFLOW_UID=$(id -u)" > .env
 #AWS issues
 echo "fs.inotify.max_user_watches=1048576" >> /etc/sysctl.conf sysctl -p
 sudo usermod -aG docker ssm-user
+
+# s3 access read/write for bucket
+s3fs ega-data-development s3bucket -o iam_role=XXXXX -o allow_other # put this into fstab!
+
+# Install npm dependencies
+echo "Installing npm dependencies..."
+sudo apt-get install npm
+npm init -y
+npm install react react-dom leaflet
+npx create-react-app .

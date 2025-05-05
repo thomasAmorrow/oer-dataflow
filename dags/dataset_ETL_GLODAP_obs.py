@@ -18,7 +18,7 @@ def fetch_GLODAP_table():
 
     if os.path.exists(filename):
         logging.info("Download successful!")
-        shutil.move("./GLODAPv2.2023_Merged_Master_File.csv", "/mnt/bucket/GLODAPv2.2023_Merged_Master_File.csv")
+        shutil.copyfile("./GLODAPv2.2023_Merged_Master_File.csv", "/mnt/bucket/GLODAPv2.2023_Merged_Master_File.csv")
 
         input_file="/mnt/bucket/GLODAPv2.2023_Merged_Master_File.csv"
         output_file="/mnt/bucket/GLODAP_cleaned.csv"
@@ -305,8 +305,8 @@ def assign_GLODAP_hex():
         ALTER TABLE glodap ADD COLUMN IF NOT EXISTS location GEOMETRY(point, 4326);
         UPDATE glodap SET location = ST_SETSRID(ST_MakePoint(cast(longitude as float), cast(latitude as float)),4326);
 
-        ALTER TABLE glodap ADD COLUMN IF NOT EXISTS hex_07 H3INDEX;
-        UPDATE glodap SET hex_07 = H3_LAT_LNG_TO_CELL(location, 7);
+        ALTER TABLE glodap ADD COLUMN IF NOT EXISTS hex_05 H3INDEX;
+        UPDATE glodap SET hex_05 = H3_LAT_LNG_TO_CELL(location, 5);
     """
      # Initialize PostgresHook
     pg_hook = PostgresHook(postgres_conn_id="oceexp-db")
@@ -332,7 +332,7 @@ default_args = {
 dag = DAG(
     'dataset_ETL_GLODAP_obs',
     default_args=default_args,
-    description='Fetch occurrences from GLODAP, save to PostgreSQL, assign hexes',
+    description='Fetch observations from GLODAP, save to PostgreSQL, assign hexes',
     schedule_interval=None,
     start_date=datetime(2025, 3, 13),
     catchup=False,
