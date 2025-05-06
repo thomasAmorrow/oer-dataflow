@@ -179,4 +179,25 @@ points_to_hex_table= PostgresOperator(
     dag=dag
 )
 
-fetch_WCSD_footprints >> load_geojson_to_postgres >> points_to_hex_table
+cleanup_nonocean_hexes = PostgresOperator(
+    task_id='cleanup_nonocean_hexes',
+    postgres_conn_id='oceexp-db',
+    sql="""
+    DELETE FROM wcsd_footprints t2
+    WHERE NOT EXISTS (
+        SELECT 1 FROM h3_oceans t1 WHERE t1.hex_05 = t2.hex_05
+    );
+    """,
+    dag=dag
+)
+
+assign_fks = PostgresOperator(
+    task_id='assign_fks',
+    postgres_conn_id='oceexp-db',
+    sql="""
+    ALTER TABLE wcsd_footprints ADD FOREIGN KEY (hex_05) REFERENCES ega_score_05 (hex_05);
+    """,
+    dag=dag
+)
+
+fetch_WCSD_footprints >> load_geojson_to_postgres >> points_to_hex_table >> cleanup_nonocean_hexes >> assign_fks
