@@ -70,6 +70,8 @@ assign_fks = PostgresOperator(
     ALTER TABLE glodap ADD FOREIGN KEY (hex_05) REFERENCES ega_score_05 (hex_05);
     ALTER TABLE gebco_tid_hex ADD FOREIGN KEY (hex_05) REFERENCES ega_score_05 (hex_05);
 
+    ALTER TABLE gebco_tid_hex ADD FOREIGN KEY (polygon_id) REFERENCES gebco_2024_polygons (polygon_id);
+    ALTER TABLE gebco_2024_polygons ADD FOREIGN KEY (rid) REFERENCES gebco_2024 (rid);
 
     ALTER TABLE ega_score_05 ADD FOREIGN KEY (hex_05) REFERENCES h3_oceans (hex_05);
     ALTER TABLE h3_oceans ADD FOREIGN KEY (hex_04) REFERENCES ega_score_04 (hex_04);

@@ -1,6 +1,5 @@
 from airflow import DAG
 from airflow.providers.postgres.hooks.postgres import PostgresHook
-from airflow.providers.postgres.operators.postgres import PostgresOperator
 from airflow.operators.python import PythonOperator
 from datetime import datetime, timedelta
 import requests
@@ -126,22 +125,48 @@ def assign_gebcoTID_hex():
 
         CREATE TABLE IF NOT EXISTS gebco_tid_hex (
             hex_05 H3INDEX PRIMARY KEY,
-            val INT
+            val INT,
+            polygon_id INT
         );
 
         TRUNCATE gebco_tid_hex;
 
-        INSERT INTO gebco_tid_hex (hex_05, val)
-        SELECT hex_05, val
-        FROM gebco_2024_polygons,
-        LATERAL h3_polygon_to_cells(polygon, 5) AS hex_05
-        WHERE val IN (10, 11, 12, 13, 14, 15, 16, 17);
+        DO $$
+        BEGIN
+            -- Check if h3_oceans exists
+            IF EXISTS (SELECT 1 FROM information_schema.tables WHERE table_name = 'h3_oceans') THEN
+                -- If h3_oceans exists, insert using the condition
+                INSERT INTO gebco_tid_hex (hex_05, val, polygon_id)
+                SELECT hex_05, val, polygon_id
+                FROM gebco_2024_polygons,
+                LATERAL h3_polygon_to_cells(polygon, 5) AS hex_05
+                WHERE val IN (10, 11, 12, 13, 14, 15, 16, 17);
+                    AND hex_05 IN (SELECT hex_05 FROM h3_oceans);
 
-        INSERT INTO gebco_tid_hex (hex_05, val)
-        SELECT hex_05, val
-        FROM gebco_2024_polygons,
-        LATERAL h3_polygon_to_cells(polygon, 5) AS hex_05
-        WHERE val NOT IN (10, 11, 12, 13, 14, 15, 16, 17);
+                INSERT INTO gebco_tid_hex (hex_05, val, polygon_id)
+                SELECT hex_05, val, polygon_id
+                FROM gebco_2024_polygons,
+                LATERAL h3_polygon_to_cells(polygon, 5) AS hex_05
+                WHERE val NOT IN (10, 11, 12, 13, 14, 15, 16, 17);
+                    AND hex_05 IN (SELECT hex_05 FROM h3_oceans);
+            ELSE
+                -- If h3_oceans does not exist, insert without the condition
+                INSERT INTO gebco_tid_hex (hex_05, val, polygon_id)
+                SELECT hex_05, val, polygon_id
+                FROM gebco_2024_polygons,
+                LATERAL h3_polygon_to_cells(polygon, 5) AS hex_05
+                WHERE val IN (10, 11, 12, 13, 14, 15, 16, 17);
+
+                INSERT INTO gebco_tid_hex (hex_05, val, polygon_id)
+                SELECT hex_05, val, polygon_id
+                FROM gebco_2024_polygons,
+                LATERAL h3_polygon_to_cells(polygon, 5) AS hex_05
+                WHERE val NOT IN (10, 11, 12, 13, 14, 15, 16, 17);
+            END IF;
+        END $$;
+
+        ALTER TABLE gebco_tid_hex ADD FOREIGN KEY (polygon_id) REFERENCES gebco_2024_polygons (polygon_id);
+        ALTER TABLE gebco_2024_polygons ADD FOREIGN KEY (rid) REFERENCES gebco_2024 (rid);
 
     """
 
@@ -203,27 +228,6 @@ assign_hexes_to_gebco_task = PythonOperator(
     task_id='assign_hexes_to_gebco',
     python_callable=assign_gebcoTID_hex,
     provide_context=True,
-    dag=dag
-)
-
-cleanup_nonocean_hexes = PostgresOperator(
-    task_id='cleanup_nonocean_hexes',
-    postgres_conn_id='oceexp-db',
-    sql="""
-    DELETE FROM gebco_tid_hex t2
-    WHERE NOT EXISTS (
-        SELECT 1 FROM h3_oceans t1 WHERE t1.hex_05 = t2.hex_05
-    );
-    """,
-    dag=dag
-)
-
-assign_fks = PostgresOperator(
-    task_id='assign_fks',
-    postgres_conn_id='oceexp-db',
-    sql="""
-    ALTER TABLE gebco_tid_hex ADD FOREIGN KEY (hex_05) REFERENCES ega_score_05 (hex_05);
-    """,
     dag=dag
 )
 
