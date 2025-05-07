@@ -57,7 +57,13 @@ More types are in development and will be added in future releases.
 ### Outputs
 
 - **Hexagon GeoJSON**: Full-resolution hex polygons with scores per observation type
-- **Centroid GeoJSON**: Lighter-weight points for each hexagon with the same properties
+- **Point GeoJSON**: Lighter-weight centroid points file for each hexagon with the same properties
+
+---
+
+### Entity Relationships
+
+<div style="width: 800px; height: 600px; margin: 10px; position: relative;"><iframe allowfullscreen frameborder="0" style="width:800px; height:600px" src="https://lucid.app/documents/embedded/74e51c42-7f40-4167-b0da-a49decd8267c" id="Ldtdq_OLexP7"></iframe></div>
 
 ---
 
