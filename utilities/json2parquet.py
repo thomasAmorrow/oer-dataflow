@@ -9,7 +9,7 @@ def round_coords(geom, precision=5):
     return shapely.wkt.loads(shapely.wkt.dumps(geom, rounding_precision=precision))
 
 
-for i in ["03", "04", "05"]:
+for i in ["03", "04"]:
     # Load hex GeoJSON
     gdf = gpd.read_file(f"h3_hexagons_{i}.geojson")
 
@@ -17,11 +17,11 @@ for i in ["03", "04", "05"]:
     gdf["geometry"] = gdf["geometry"].apply(lambda g: round_coords(g, precision=5))
 
     # Save as GeoParquet with brotli compression
-    gdf.to_parquet(f"h3_hexagons_{i}.parquet", index=False, compression="zstd", compression_level=22)
+    gdf.to_parquet(f"h3_hexagons_{i}.parquet", index=False)
 
     # Load point GeoJSON
     gdf = gpd.read_file(f"h3_points_{i}.geojson")
 
     # Save as GeoParquet with brotli compression
-    gdf.to_parquet(f"h3_points_{i}.parquet", index=False, compression="zstd", compression_level=22)
+    gdf.to_parquet(f"h3_points_{i}.parquet", index=False)
 
