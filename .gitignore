@@ -9,3 +9,6 @@ __pycache__/*
 .vscode
 ./app
 outputs/*.geojson
+parquor/
+init.sh
+docker_boot.service
