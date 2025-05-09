@@ -15,7 +15,7 @@ default_args = {
 
 # Define the DAG
 dag = DAG(
-    'cleanup_and_fk',
+    'processing_cleanup_and_fk',
     default_args=default_args,
     description='Clean up non-ocean observations that slipped through filter, assign foreign keys',
     schedule_interval=None,  # Trigger manually or modify as needed
