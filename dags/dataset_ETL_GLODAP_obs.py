@@ -16,37 +16,36 @@ def fetch_GLODAP_table():
     url = 'https://www.ncei.noaa.gov/data/oceans/ncei/ocads/data/0283442/GLODAPv2.2023_Merged_Master_File.csv'
     filename = wget.download(url)
 
-    if os.path.exists(filename):
-        logging.info("Download successful!")
-        shutil.copyfile("./GLODAPv2.2023_Merged_Master_File.csv", "/mnt/bucket/GLODAPv2.2023_Merged_Master_File.csv")
+    logging.info("Download successful!")
+    shutil.copyfile("./GLODAPv2.2023_Merged_Master_File.csv", "/mnt/bucket/GLODAPv2.2023_Merged_Master_File.csv")
 
-        input_file="/mnt/bucket/GLODAPv2.2023_Merged_Master_File.csv"
-        output_file="/mnt/bucket/GLODAP_cleaned.csv"
+    input_file="/mnt/bucket/GLODAPv2.2023_Merged_Master_File.csv"
+    output_file="/mnt/bucket/GLODAP_cleaned.csv"
 
-        with open(input_file, 'r', newline='', encoding='utf-8') as infile, \
-            open(output_file, 'w', newline='', encoding='utf-8') as outfile:
-            
-            # Create a CSV reader and writer
-            reader = csv.reader(infile)
-            writer = csv.writer(outfile, quotechar='"', quoting=csv.QUOTE_MINIMAL)
-
-            # Process each row
-            for row in reader:
-                try:    
-                    # Check if the number of fields is 50
-                    if len(row) == 109:
-                        # Create a new row with quotes around most fields, except for fields 22 and 23
-                        processed_row = [
-                            field for index, field in enumerate(row)
-                        ]
-                        # Write the processed row to the output file
-                        writer.writerow(processed_row)
-                except csv.Error as e:
-                    # Handle the error: skip the row with the large field
-                    logging.info(f"Skipping row due to error: {e}")
-                    continue  # Skip the current row and proceed to the next one
+    with open(input_file, 'r', newline='', encoding='utf-8') as infile, \
+        open(output_file, 'w', newline='', encoding='utf-8') as outfile:
         
-        logging.info("Finished cleaning file, cleanup started...")
+        # Create a CSV reader and writer
+        reader = csv.reader(infile)
+        writer = csv.writer(outfile, quotechar='"', quoting=csv.QUOTE_MINIMAL)
+
+        # Process each row
+        for row in reader:
+            try:    
+                # Check if the number of fields is 50
+                if len(row) == 109:
+                    # Create a new row with quotes around most fields, except for fields 22 and 23
+                    processed_row = [
+                        field for index, field in enumerate(row)
+                    ]
+                    # Write the processed row to the output file
+                    writer.writerow(processed_row)
+            except csv.Error as e:
+                # Handle the error: skip the row with the large field
+                logging.info(f"Skipping row due to error: {e}")
+                continue  # Skip the current row and proceed to the next one
+        
+    logging.info("Finished cleaning file, cleanup started...")
 
 
 def load_GLODAP_table():
