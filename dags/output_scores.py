@@ -5,6 +5,7 @@ from airflow.providers.postgres.hooks.postgres import PostgresHook
 import h3
 import json
 import time
+import csv
 
 # Function to check if a polygon crosses the antimeridian
 def crosses_antimeridian(boundary):
@@ -233,6 +234,22 @@ def generate_geojson():
 
         print(f"GeoJSON saved to {output_geojsonpoint}")
 
+def generate_csv():
+    import csv
+    for rez in ['03', '04', '05']:
+        rows = fetch_data_from_pg(rez)
+        output_csv = f'/mnt/s3bucket/h3_scores_{rez}.csv'
+
+        with open(output_csv, mode='w', newline='') as csvfile:
+            writer = csv.writer(csvfile)
+            writer.writerow([
+                "h3_index", "combined", "mapping", "occurrence",
+                "chemistry", "geology", "edna_score", "wcsd_score"
+            ])
+            for row in rows:
+                writer.writerow(row)
+
+        print(f"CSV saved to {output_csv}")
 
 # Default arguments for DAG
 default_args = {
@@ -246,9 +263,9 @@ default_args = {
 
 # Define the DAG
 dag = DAG(
-    'output_geojson_scores',
+    'output_scores',
     default_args=default_args,
-    description='DAG to output geojson score files for webmap display',
+    description='DAG to output geojson and csv score files',
     schedule_interval=None,  # Trigger manually or modify as needed
     start_date=datetime(2025, 3, 13),
     catchup=False,
@@ -261,5 +278,13 @@ generate_geojson = PythonOperator(
     dag=dag
 )
 
+generate_csv = PythonOperator(
+    task_id='generate_csv',
+    python_callable=generate_geojson,
+    provide_context=True,
+    dag=dag
+)
+
 # Define task dependencies
 generate_geojson
+generate_csv
