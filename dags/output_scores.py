@@ -280,7 +280,7 @@ generate_geojson = PythonOperator(
 
 generate_csv = PythonOperator(
     task_id='generate_csv',
-    python_callable=generate_geojson,
+    python_callable=generate_csv,
     provide_context=True,
     dag=dag
 )
