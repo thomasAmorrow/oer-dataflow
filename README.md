@@ -9,7 +9,7 @@
 [![License: CC0-1.0](https://licensebuttons.net/l/zero/1.0/80x15.png)](http://creativecommons.org/publicdomain/zero/1.0/)
 
 [![Docker](https://img.shields.io/badge/docker-28.0.4-blue?logo=docker)](https://www.docker.com/)
-[![Airflow](https://img.shields.io/badge/Airflow-2.10.4-017CEE?logo=apache-airflow)](https://airflow.apache.org/)
+[![Airflow](https://img.shields.io/badge/Airflow-2.10.4-red?logo=apache-airflow)](https://airflow.apache.org/)
 [![PostGIS](https://img.shields.io/badge/PostGIS-3.5.2-green?logo=postgresql)](https://postgis.net/)
 
 
