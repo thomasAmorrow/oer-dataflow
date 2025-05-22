@@ -4,9 +4,9 @@
 
 [![Version](https://img.shields.io/badge/version-0.2.0%20beta%20release-orange)]()
 
-[![DATASET DOI](https://img.shields.io/badge/DATASET%20DOI-10.5281/zenodo.15490756-blue)](https://doi.org/10.5281/zenodo.15490756)
+[![dataset DOI](https://img.shields.io/badge/DATASET%20DOI-10.5281/zenodo.15490756-blue)](https://doi.org/10.5281/zenodo.15490756)
 [![NOAA Ocean Exploration](https://img.shields.io/badge/NOAA%20Ocean%20Exploration-005493)](https://oceanexplorer.noaa.gov)
-[![License: CC0-1.0](https://licensebuttons.net/l/zero/1.0/80x15.png)](http://creativecommons.org/publicdomain/zero/1.0/)
+[![License: CC0-1.0](https://licensebuttons.net/l/zero/1.0/88x31.png)](http://creativecommons.org/publicdomain/zero/1.0/)
 
 [![Docker](https://img.shields.io/badge/docker-28.0.4-blue?logo=docker)](https://www.docker.com/)
 [![Airflow](https://img.shields.io/badge/Airflow-2.10.4-017CEE?logo=apache-airflow)](https://airflow.apache.org/)
