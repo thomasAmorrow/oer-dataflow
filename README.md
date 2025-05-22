@@ -3,18 +3,21 @@
 </p>
 
 [![Version](https://img.shields.io/badge/version-0.2.0%20beta%20release-orange)]()
+
+[![DATASET DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.15490756.svg)](https://doi.org/10.5281/zenodo.15490756)
 [![NOAA Ocean Exploration](https://img.shields.io/badge/NOAA%20Ocean%20Exploration-005493)](https://oceanexplorer.noaa.gov)
+[![License: CC0-1.0](https://licensebuttons.net/l/zero/1.0/80x15.png)](http://creativecommons.org/publicdomain/zero/1.0/)
+
 [![Docker](https://img.shields.io/badge/docker-28.0.4-blue?logo=docker)](https://www.docker.com/)
 [![Airflow](https://img.shields.io/badge/Airflow-2.10.4-017CEE?logo=apache-airflow)](https://airflow.apache.org/)
 [![PostGIS](https://img.shields.io/badge/PostGIS-3.5.2-green?logo=postgresql)](https://postgis.net/)
-[![License: GPL v3](https://img.shields.io/badge/license-GPL--3.0-blue.svg)](https://www.gnu.org/licenses/gpl-3.0.en.html)
 
 
 ##  Overview
 
  The **NOAA Ocean Exploration Gap Analysis (EGA)** is a tool to establish a spatial coverage baseline for ocean exploration data holdings, support the monitoring of exploration and characterization progress on previously unexplored ocean areas, and aid in the identification of priority areas for future expeditions and data collection efforts. At its core, the EGA is a PostGIS database synthesizing deep sea scientific observations from publicly available data archives.
 
- The current version is pre-release and still in development.
+ The current version is still in development.
 
 ## 📑 Table of Contents
 
@@ -35,7 +38,7 @@ Spatial data are indexed using the **H3 hexagonal grid system** at resolution 5.
 - Score **1**: Observation type is present
 - Score **0**: Observation type is absent
 
-Averaging these per observation type yields a composite score. Scores at coarser H3 resolutions (4 and 3) are computed by aggregating child hex scores.
+Averaging these per observation type yields a composite score. Scores at coarser H3 resolutions (4 and 3) are computed by summing the scores of all child hexagons and dividing by the number of child hexagons (averaging).
 
 ---
 
@@ -62,6 +65,8 @@ Output files from the full processing pipeline at hexagon resolution 5 (~11 km w
   - **Point GeoJSON**: Lighter-weight centroid points file for each hexagon with the same properties
   - **csv**: Simple csv flat file with no geospatial data, only hexagon indices
   - **sql**: SQL dump of the entire database after assembly, cleaning, and processing
+
+[Zenodo Dataset: DOI 10.5281/zenodo.15490756 ](https://doi.org/10.5281/zenodo.15490756)
 
 [View PostGIS Database Entity Relationship Diagram](https://lucid.app/documents/embedded/74e51c42-7f40-4167-b0da-a49decd8267c)
 
@@ -105,9 +110,13 @@ Have data? Ideas? Feedback? Help us improve our understanding of the unknown dee
 
 The `dev` branch is the most active—follow for updates. Upcoming milestones include:
 
-1. Publicly hosted EGA results for easy access
+1. DOI/citation extraction from contributing datasets
 2. Leaflet-based web map viewer
 3. ArcGIS-ready exports (Experience Builder, Online)
 4. SME-driven enhancements to scoring methods
 
 ---
+
+## Release Notes
+
+*0.2.0* - Functioning ingest from six public archives, generates outputs in GeoJSON, CSV formats hosted on corresponding Zenodo Dataset
