@@ -10,7 +10,7 @@ import subprocess
 def run_pg_dumpall(**kwargs):
     # Get connection info from Airflow
     hook = PostgresHook(postgres_conn_id='oceexp-db')
-    conn = hook.get_connection()
+    conn = hook.get_connection('oceexp-db')
 
     # Extract credentials
     host = conn.host
