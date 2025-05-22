@@ -30,16 +30,13 @@ def run_pg_dumpall(**kwargs):
         f"-U{user}"
     ]
 
-    # Run the command
-    result = subprocess.run(dump_cmd, env=env, capture_output=True, text=True)
+    # Optionally save the output somewhere
+    with open("s3bucket/oceexp_db_dump.sql", "w") as f:
+        result = subprocess.run(dump_cmd, env=env, stdout=f, stderr=subprocess.PIPE, text=True)
 
     if result.returncode != 0:
         raise Exception(f"pg_dumpall failed: {result.stderr}")
     
-    # Optionally save the output somewhere
-    with open("s3bucket/oceexp_db_dump.sql", "w") as f:
-        f.write(result.stdout)
-
     return "pg_dumpall completed successfully"
 
 # Default arguments for DAG
