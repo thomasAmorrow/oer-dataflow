@@ -2,9 +2,9 @@
   <img src="https://github.com/thomasAmorrow/oer-ega/blob/main/docs/logos/logo_banner.png?raw=true" alt="vlogo" width="800"/>
 </p>
 
-[![Version](https://img.shields.io/badge/version-0.2.0%20beta%20release-orange)]()
+[![Version](https://img.shields.io/badge/version-0.2.0--beta-orange)]()
 
-[![dataset DOI](https://img.shields.io/badge/DATASET%20DOI-10.5281/zenodo.15490756-blue)](https://doi.org/10.5281/zenodo.15490756)
+[![dataset DOI](https://img.shields.io/badge/DATASET%20DOI-10.5281/zenodo.15490755-blue)](https://doi.org/10.5281/zenodo.15490755)
 [![NOAA Ocean Exploration](https://img.shields.io/badge/NOAA-Ocean%20Exploration-005493)](https://oceanexplorer.noaa.gov)
 [![License: CC0-1.0](https://licensebuttons.net/l/zero/1.0/80x15.png)](http://creativecommons.org/publicdomain/zero/1.0/)
 
@@ -119,4 +119,7 @@ The `dev` branch is the most active—follow for updates. Upcoming milestones in
 
 ## Release Notes
 
-*0.2.0* - Functioning ingest from six public archives, generates outputs in GeoJSON, CSV formats hosted on corresponding Zenodo Dataset
+**0.2.0-beta**
+  - Functioning ingest from six public archives
+  - Generates outputs in GeoJSON, CSV formats
+  - Hosted on corresponding Zenodo Dataset
