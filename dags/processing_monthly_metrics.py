@@ -127,6 +127,7 @@ clean_fkeys = PostgresOperator(
             END IF;
         END$$;
     """,
+    dag=dag
 )
 
 trigger_ETL = TriggerDagRunOperator(
