@@ -22,7 +22,7 @@ dag = DAG(
     default_args=default_args,
     description='DAG to conduct monthly metrics assessment',
     schedule_interval='@monthly',
-    start_date=datetime(2025, 5, 1),
+    start_date=datetime(2025, 6, 1),
     catchup=False,
 )
 
@@ -32,6 +32,101 @@ backup_db = TriggerDagRunOperator(
     wait_for_completion=True,
     reset_dag_run=True,
     dag=dag
+)
+
+# Task: Create the h3_children table
+clean_fkeys = PostgresOperator(
+    task_id='clean_fkeys',
+    postgres_conn_id='oceexp-db',  # Define your connection ID
+    sql="""
+        DO $$
+        BEGIN
+            IF EXISTS (SELECT 1 FROM pg_class WHERE relname = 'gbif_occurrences') AND 
+            EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'fk_gbif_occurrences_hex_05') THEN
+                ALTER TABLE gbif_occurrences DROP CONSTRAINT fk_gbif_occurrences_hex_05;
+            END IF;
+        END$$;
+
+        DO $$
+        BEGIN
+            IF EXISTS (SELECT 1 FROM pg_class WHERE relname = 'obis_sequences') AND 
+            EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'fk_obis_sequences_hex_05') THEN
+                ALTER TABLE obis_sequences DROP CONSTRAINT fk_obis_sequences_hex_05;
+            END IF;
+        END$$;
+
+        DO $$
+        BEGIN
+            IF EXISTS (SELECT 1 FROM pg_class WHERE relname = 'wcsd_footprints') AND 
+            EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'fk_wcsd_footprints_hex_05') THEN
+                ALTER TABLE wcsd_footprints DROP CONSTRAINT fk_wcsd_footprints_hex_05;
+            END IF;
+        END$$;
+
+        DO $$
+        BEGIN
+            IF EXISTS (SELECT 1 FROM pg_class WHERE relname = 'imlgs') AND 
+            EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'fk_imlgs_hex_05') THEN
+                ALTER TABLE imlgs DROP CONSTRAINT fk_imlgs_hex_05;
+            END IF;
+        END$$;
+
+        DO $$
+        BEGIN
+            IF EXISTS (SELECT 1 FROM pg_class WHERE relname = 'glodap') AND 
+            EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'fk_glodap_hex_05') THEN
+                ALTER TABLE glodap DROP CONSTRAINT fk_glodap_hex_05;
+            END IF;
+        END$$;
+
+        DO $$
+        BEGIN
+            IF EXISTS (SELECT 1 FROM pg_class WHERE relname = 'gebco_tid_hex') AND 
+            EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'fk_gebco_tid_hex_hex_05') THEN
+                ALTER TABLE gebco_tid_hex DROP CONSTRAINT fk_gebco_tid_hex_hex_05;
+            END IF;
+        END$$;
+
+        DO $$
+        BEGIN
+            IF EXISTS (SELECT 1 FROM pg_class WHERE relname = 'gebco_tid_hex') AND 
+            EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'fk_gebco_tid_hex_polygon_id') THEN
+                ALTER TABLE gebco_tid_hex DROP CONSTRAINT fk_gebco_tid_hex_polygon_id;
+            END IF;
+        END$$;
+
+        DO $$
+        BEGIN
+            IF EXISTS (SELECT 1 FROM pg_class WHERE relname = 'gebco_2024_polygons') AND 
+            EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'fk_gebco_2024_polygons_rid') THEN
+                ALTER TABLE gebco_2024_polygons DROP CONSTRAINT fk_gebco_2024_polygons_rid;
+            END IF;
+        END$$;
+
+        DO $$
+        BEGIN
+            IF EXISTS (SELECT 1 FROM pg_class WHERE relname = 'ega_score_05') AND 
+            EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'fk_ega_score_05_hex_05') THEN
+                ALTER TABLE ega_score_05 DROP CONSTRAINT fk_ega_score_05_hex_05;
+            END IF;
+        END$$;
+
+        DO $$
+        BEGIN
+            IF EXISTS (SELECT 1 FROM pg_class WHERE relname = 'h3_oceans') AND 
+            EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'fk_h3_oceans_hex_04') THEN
+                ALTER TABLE h3_oceans DROP CONSTRAINT fk_h3_oceans_hex_04;
+            END IF;
+        END$$;
+
+        DO $$
+        BEGIN
+            IF EXISTS (SELECT 1 FROM pg_class WHERE relname = 'h3_oceans') AND 
+            EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'fk_h3_oceans_hex_03') THEN
+                ALTER TABLE h3_oceans DROP CONSTRAINT fk_h3_oceans_hex_03;
+            END IF;
+        END$$;
+    """,
 )
 
 trigger_ETL = TriggerDagRunOperator(
@@ -148,4 +243,4 @@ count_store_explored = PostgresOperator(
     dag=dag
 )
 
-backup_db >> trigger_ETL >> trigger_score_assembly >> trigger_cleanup >> count_store_explored
+backup_db >> clean_fkeys >> trigger_ETL >> trigger_score_assembly >> trigger_cleanup >> count_store_explored
