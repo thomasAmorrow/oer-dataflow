@@ -31,6 +31,7 @@ backup_db = TriggerDagRunOperator(
     trigger_dag_id='output_pgdump',  # your actual DAG ID
     wait_for_completion=True,
     reset_dag_run=True,
+    dag=dag
 )
 
 trigger_ETL = TriggerDagRunOperator(
@@ -38,6 +39,7 @@ trigger_ETL = TriggerDagRunOperator(
     trigger_dag_id='trigger_dataset_ETL_series',  # your actual DAG ID
     wait_for_completion=True,
     reset_dag_run=True,
+    dag=dag
 )
 
 trigger_score_assembly = TriggerDagRunOperator(
@@ -45,6 +47,7 @@ trigger_score_assembly = TriggerDagRunOperator(
     trigger_dag_id='processing_SCORE_assembly',  # your actual DAG ID
     wait_for_completion=True,
     reset_dag_run=True,
+    dag=dag
 )
 
 trigger_cleanup = TriggerDagRunOperator(
@@ -52,6 +55,7 @@ trigger_cleanup = TriggerDagRunOperator(
     trigger_dag_id='processing_cleanup_and_fk',  # your actual DAG ID
     wait_for_completion=True,
     reset_dag_run=True,
+    dag=dag
 )
 
 count_store_explored = PostgresOperator(
