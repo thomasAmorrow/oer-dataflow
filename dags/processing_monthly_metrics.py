@@ -22,7 +22,7 @@ dag = DAG(
     default_args=default_args,
     description='DAG to conduct monthly metrics assessment',
     schedule_interval='@monthly',
-    start_date=datetime(2025, 6, 1),
+    start_date=datetime(2025, 5, 1),
     catchup=False,
 )
 
