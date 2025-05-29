@@ -12,7 +12,7 @@ default_args = {
     'depends_on_past': False,
     'email_on_failure': False,
     'email_on_retry': False,
-    'retries': 5,
+    'retries': 2,
     'retry_delay': timedelta(minutes=20),
 }
 
@@ -60,6 +60,14 @@ clean_fkeys = PostgresOperator(
             IF EXISTS (SELECT 1 FROM pg_class WHERE relname = 'wcsd_footprints') AND 
             EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'fk_wcsd_footprints_hex_05') THEN
                 ALTER TABLE wcsd_footprints DROP CONSTRAINT fk_wcsd_footprints_hex_05;
+            END IF;
+        END$$;
+
+        DO $$
+        BEGIN
+            IF EXISTS (SELECT 1 FROM pg_class WHERE relname = 'wcsd_footprints') AND 
+            EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'fk_wcsdid_lines') THEN
+                ALTER TABLE wcsd_footprints DROP CONSTRAINT fk_wcsdid_lines;
             END IF;
         END$$;
 
