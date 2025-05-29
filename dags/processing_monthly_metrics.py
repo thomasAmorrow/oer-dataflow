@@ -134,6 +134,22 @@ clean_fkeys = PostgresOperator(
                 ALTER TABLE h3_oceans DROP CONSTRAINT fk_h3_oceans_hex_03;
             END IF;
         END$$;
+
+        DO $$
+        BEGIN
+            IF EXISTS (SELECT 1 FROM pg_class WHERE relname = 'h3_oceans') AND 
+            EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'fk_h3_oceans_hex_04') THEN
+                ALTER TABLE gbif_occurrences DROP CONSTRAINT fk_h3_oceans_hex_04;
+            END IF;
+        END$$;
+
+        DO $$
+        BEGIN
+            IF EXISTS (SELECT 1 FROM pg_class WHERE relname = 'h3_oceans') AND 
+            EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'fk_h3_oceans_hex_03') THEN
+                ALTER TABLE gbif_occurrences DROP CONSTRAINT fk_h3_oceans_hex_03;
+            END IF;
+        END$$;
     """,
     dag=dag
 )
