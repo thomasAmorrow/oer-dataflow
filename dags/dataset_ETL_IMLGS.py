@@ -19,7 +19,7 @@ def fetch_IMLGS_table():
 
     if os.path.exists(filename):
         logging.info("Download successful!")
-        shutil.copyfile("./geosamples_export.csv", "/mnt/bucket/IMLGS.csv")
+        shutil.move("./geosamples_export.csv", "/mnt/bucket/IMLGS.csv")
 
         input_file="/mnt/bucket/IMLGS.csv"
         output_file="/mnt/bucket/IMLGS_cleaned.csv"
@@ -159,7 +159,7 @@ default_args = {
 }
 
 dag = DAG(
-    'dataset_ETL_IMLGS_obs',
+    'dataset_ETL_IMLGS',
     default_args=default_args,
     description='Fetch samples from IMLGS, save to PostgreSQL, assign hexes',
     schedule_interval=None,

@@ -65,13 +65,15 @@ def process_and_identify_hexagons(extracted_folder, output_csv):
     # Reproject to WGS 84 if the CRS isn't already EPSG:4326
     if gdf.crs != 'EPSG:4326':
         gdf = gdf.to_crs(epsg=4326)
-        print("Reprojected GeoDataFrame to EPSG:4326")
+        #print("Reprojected GeoDataFrame to EPSG:4326")
 
     # Identify water hexagons and save to CSV
     waterhexes = set()  # Initialize an empty set to store unique hexes
     for geom in gdf.geometry:
         geojson = geom.__geo_interface__  # Convert the geometry to GeoJSON format
-        hexes = h3.geo_to_cells(geojson, 4)  # Adjust resolution as needed
+        h3shp = h3.geo_to_h3shape(geojson)
+        hexes = h3.polygon_to_cells_experimental(h3shp,5,'overlap')
+        #hexes = h3.geo_to_cells(geojson, 4)  # Adjust resolution as needed
         waterhexes.update(hexes)  # Update the waterhexes set with the result
     
     # Write identified water hexagons to CSV
@@ -126,7 +128,7 @@ load_h3_task = PythonOperator(
     python_callable=load_h3_to_postgis,
     op_kwargs={
         'csv_path': OUTPUT_CSV,
-        'table_name': 'hex_ocean_polys_04',
+        'table_name': 'hex_ocean_polys_05',
         'postgres_conn_id': 'oceexp-db',
     },
     dag=dag,
@@ -139,21 +141,38 @@ create_h3_primary = PostgresOperator(
     sql="""
         CREATE EXTENSION IF NOT EXISTS h3;
         CREATE EXTENSION IF NOT EXISTS h3_postgis CASCADE;
+        
         DROP TABLE IF EXISTS h3_oceans;
 
-        CREATE TABLE h3_oceans AS
-        SELECT
-            hex_05
-        FROM
-            hex_ocean_polys_04,
-            LATERAL H3_Cell_to_Children(CAST("h3_index" AS H3Index), 5) AS hex_05;
+        CREATE TABLE h3_oceans AS 
+        TABLE hex_ocean_polys_05;
+
+        ALTER TABLE h3_oceans
+        RENAME COLUMN h3_index TO hex_05;
+
+        ALTER TABLE h3_oceans
+        ALTER COLUMN hex_05 TYPE H3INDEX
+        USING hex_05::H3INDEX;
 
         ALTER TABLE h3_oceans
         ADD PRIMARY KEY (hex_05);
 
-        DROP TABLE IF EXISTS hex_ocean_polys_04; 
+        DROP TABLE IF EXISTS hex_ocean_polys_05; 
     """,
 )
+
+#        CREATE TABLE h3_oceans AS
+#        SELECT
+#            hex_05
+#        FROM
+#            hex_ocean_polys_04,
+#            LATERAL H3_Cell_to_Children(CAST("h3_index" AS H3Index), 5) AS hex_05;
+
+#        ALTER TABLE h3_oceans
+#        ADD PRIMARY KEY (hex_05);
+
+#        DROP TABLE IF EXISTS hex_ocean_polys_04; 
+
 
 # Task: Create the h3_children table
 create_h3_lineage = PostgresOperator(

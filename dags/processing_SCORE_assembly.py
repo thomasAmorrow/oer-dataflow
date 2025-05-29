@@ -77,6 +77,22 @@ create_primary_SCORE_table= PostgresOperator(
     FROM imlgs
     WHERE ega_score_05.hex_05 = imlgs.hex_05;
 
+    ALTER TABLE ega_score_05
+    ADD COLUMN edna_score FLOAT;
+
+    UPDATE ega_score_05
+    SET edna_score = 1
+    FROM obis_sequences
+    WHERE ega_score_05.hex_05 = obis_sequences.hex_05;
+
+    ALTER TABLE ega_score_05
+    ADD COLUMN wcsd_score FLOAT;
+
+    UPDATE ega_score_05
+    SET wcsd_score = 1
+    FROM wcsd_footprints
+	WHERE ega_score_05.hex_05 = wcsd_footprints.hex_05;
+
     """,
     dag=dag,
 )
@@ -90,7 +106,7 @@ combine_primary_scores= PostgresOperator(
         ADD COLUMN combined_score FLOAT;
 
         UPDATE ega_score_05
-        SET combined_score = (COALESCE(mapping_score, 0) + COALESCE(occurrence_score, 0) + COALESCE(chemistry_score, 0) + COALESCE(geology_score, 0)) / 4;
+        SET combined_score = (COALESCE(mapping_score, 0) + COALESCE(occurrence_score, 0) + COALESCE(chemistry_score, 0) + COALESCE(geology_score, 0) + COALESCE(edna_score, 0) + COALESCE(wcsd_score, 0)) / 6;
 
     """,
     dag=dag,
@@ -110,7 +126,9 @@ derez_scores_to_parents= PostgresOperator(
                 SUM(mapping_score) AS mapping_score_sum, 
                 SUM(occurrence_score) AS occurrence_score_sum,
                 SUM(chemistry_score) AS chemistry_score_sum,
-                SUM(geology_score) AS geology_score_sum
+                SUM(geology_score) AS geology_score_sum,
+                SUM(edna_score) AS edna_score_sum,
+                SUM(wcsd_score) AS wcsd_score_sum
             FROM ega_score_05
             GROUP BY h3_cell_to_parent(hex_05, 4)
         ),
@@ -132,7 +150,9 @@ derez_scores_to_parents= PostgresOperator(
             mapping_score_sum / num_children AS mapping_score,
             occurrence_score_sum / num_children AS occurrence_score,
             chemistry_score_sum / num_children AS chemistry_score,
-            geology_score_sum / num_children AS geology_score
+            geology_score_sum / num_children AS geology_score,
+            edna_score_sum / num_children AS edna_score,
+            wcsd_score_sum / num_children AS wcsd_Score
         FROM hex_04_stats h
         JOIN child_counts c ON h.hex_04 = c.hex_04;
 
@@ -140,7 +160,7 @@ derez_scores_to_parents= PostgresOperator(
         ADD COLUMN combined_score FLOAT;
 
         UPDATE ega_score_04
-        SET combined_score = (COALESCE(mapping_score, 0) + COALESCE(occurrence_score, 0) + COALESCE(chemistry_score, 0) + COALESCE(geology_score, 0)) / 4;
+        SET combined_score = (COALESCE(mapping_score, 0) + COALESCE(occurrence_score, 0) + COALESCE(chemistry_score, 0) + COALESCE(geology_score, 0) + COALESCE(edna_score, 0) + COALESCE(wcsd_score, 0)) / 6;
 
         ALTER TABLE ega_score_04
         ADD PRIMARY KEY (hex_04);
@@ -154,7 +174,9 @@ derez_scores_to_parents= PostgresOperator(
                 SUM(mapping_score) AS mapping_score_sum, 
                 SUM(occurrence_score) AS occurrence_score_sum,
                 SUM(chemistry_score) AS chemistry_score_sum,
-                SUM(geology_score) AS geology_score_sum
+                SUM(geology_score) AS geology_score_sum,
+                SUM(edna_score) AS edna_score_sum,
+                SUM(wcsd_score) AS wcsd_score_sum
             FROM ega_score_05
             GROUP BY h3_cell_to_parent(hex_05, 3)
         ),
@@ -176,7 +198,9 @@ derez_scores_to_parents= PostgresOperator(
             mapping_score_sum / num_children AS mapping_score,
             occurrence_score_sum / num_children AS occurrence_score,
             chemistry_score_sum / num_children AS chemistry_score,
-            geology_score_sum / num_children AS geology_score
+            geology_score_sum / num_children AS geology_score,
+            edna_score_sum / num_children AS edna_score,
+            wcsd_score_sum / num_children AS wcsd_score
         FROM hex_03_stats h
         JOIN child_counts c ON h.hex_03 = c.hex_03;
 
@@ -184,7 +208,7 @@ derez_scores_to_parents= PostgresOperator(
         ADD COLUMN combined_score FLOAT;
 
         UPDATE ega_score_03
-        SET combined_score = (COALESCE(mapping_score, 0) + COALESCE(occurrence_score, 0) + COALESCE(chemistry_score, 0) + COALESCE(geology_score, 0)) / 4;
+        SET combined_score = (COALESCE(mapping_score, 0) + COALESCE(occurrence_score, 0) + COALESCE(chemistry_score, 0) + COALESCE(geology_score, 0) + COALESCE(edna_score, 0) + COALESCE(wcsd_score, 0)) / 6;
 
         ALTER TABLE ega_score_03
         ADD PRIMARY KEY (hex_03);
