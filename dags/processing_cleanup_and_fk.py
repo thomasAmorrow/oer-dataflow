@@ -99,14 +99,6 @@ assign_fks = PostgresOperator(
         ALTER TABLE ega_score_05 
             ADD CONSTRAINT fk_ega_score_05_hex_05 
             FOREIGN KEY (hex_05) REFERENCES h3_oceans (hex_05);
-
-        ALTER TABLE h3_oceans 
-            ADD CONSTRAINT fk_h3_oceans_hex_04 
-            FOREIGN KEY (hex_04) REFERENCES ega_score_04 (hex_04);
-
-        ALTER TABLE h3_oceans 
-            ADD CONSTRAINT fk_h3_oceans_hex_03 
-            FOREIGN KEY (hex_03) REFERENCES ega_score_03 (hex_03);
     """,
     dag=dag
 )
