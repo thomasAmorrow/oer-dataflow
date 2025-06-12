@@ -274,11 +274,17 @@ services:
     image: nginx:alpine
     ports:
       - "8000:80"
+    deploy:
+      resources:
+        #limits:
+          #cpus: "4.0"  # Allocate 4 CPUs for the single worker
+        reservations:
+          cpus: "2"  # Reserve 2 CPUs for the worker to ensure it has sufficient resources
+          memory: "8G"
     volumes:
       - ./app:/usr/share/nginx/html
       - ./tiles:/usr/share/nginx/html/tiles
     restart: unless-stopped
-
 
 volumes:
   postgres-db-volume:
