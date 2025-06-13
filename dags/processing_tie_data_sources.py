@@ -2,6 +2,7 @@ from datetime import datetime, timedelta
 from airflow import DAG
 from airflow.operators.python import PythonOperator
 from airflow.providers.postgres.hooks.postgres import PostgresHook
+from airflow.providers.postgres.operators.postgres import PostgresOperator
 import requests
 import json
 import time
@@ -79,5 +80,32 @@ tie_gbif_sources = PythonOperator(
     dag=dag,
 )
 
+fetch_gbif_contacts = PostgresOperator(
+    task_id='fetch_gbif_contacts',
+    postgres_conn_id='oceexp-db',
+    sql="""
+        DROP TABLE IF EXISTS gbif_contacts;
+
+        CREATE TABLE gbif_contacts AS
+            SELECT DISTINCT ON (
+                contact->>'firstName',
+                contact->>'lastName'
+            )
+            contact->>'firstName' AS first_name,
+            contact->>'lastName' AS last_name,
+            contact->'email'->>0 AS email,
+            dataset->>'key' AS dataset_key
+            FROM gbif_references,
+                jsonb_array_elements(dataset->'contacts') AS contact
+            WHERE contact ? 'email'
+            AND jsonb_array_length(contact->'email') > 0
+            ORDER BY
+            contact->>'firstName',
+            contact->>'lastName';
+            );
+    """,
+    dag=dag
+)
+
 # Set task dependency
-tie_gbif_sources
+tie_gbif_sources >> fetch_gbif_contacts
