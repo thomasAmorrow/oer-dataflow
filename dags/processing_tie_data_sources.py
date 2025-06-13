@@ -93,16 +93,22 @@ fetch_gbif_contacts = PostgresOperator(
             )
             contact->>'firstName' AS first_name,
             contact->>'lastName' AS last_name,
-            contact->'email'->>0 AS email,
+            CASE
+                WHEN contact ? 'email' AND jsonb_array_length(contact->'email') > 0
+                THEN contact->'email'->>0
+                ELSE NULL
+            END AS email,
             dataset->>'key' AS dataset_key
             FROM gbif_references,
                 jsonb_array_elements(dataset->'contacts') AS contact
-            WHERE contact ? 'email'
-            AND jsonb_array_length(contact->'email') > 0
             ORDER BY
             contact->>'firstName',
-            contact->>'lastName';
-            );
+            contact->>'lastName',
+            -- Prefer rows WITH email over those without
+            CASE
+                WHEN contact ? 'email' AND jsonb_array_length(contact->'email') > 0 THEN 0
+                ELSE 1
+            END;
     """,
     dag=dag
 )
