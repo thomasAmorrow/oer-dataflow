@@ -9,19 +9,76 @@
   <script src="https://d3js.org/d3.v7.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/d3-scale-chromatic@3.0.0/dist/d3-scale-chromatic.min.js"></script>
   <style>
-    #map { width: 100%; height: 800px; }
+    /* Roboto font from Google Fonts */
+    @import url('https://fonts.googleapis.com/css2?family=Roboto&display=swap');
+
+    body {
+      margin: 0;
+      background-color: #121212;
+      color: #eee;
+      font-family: 'Roboto', sans-serif;
+      display: flex;
+      height: 100vh;
+      overflow: hidden;
+      flex-direction: row-reverse; /* keep sidebar on right */
+    }
+
+    #sidebar {
+      width: 320px;
+      background: #1e1e1e;
+      box-shadow: -3px 0 10px rgba(0,0,0,0.7); /* shadow on left for right sidebar */
+      padding: 20px;
+      overflow-y: auto;
+      display: flex;
+      flex-direction: column;
+      gap: 1em;
+    }
+
+    #sidebar img {
+      width: 100%;
+      height: auto;
+      margin-bottom: 15px;
+      object-fit: contain;
+    }
+
+    #sidebar h2 {
+      margin: 0 0 10px 0;
+      font-weight: 700;
+      color: #34bddf;
+    }
+
+    #sidebar table {
+      width: 100%;
+      border-collapse: collapse;
+    }
+
+    #sidebar td {
+      padding: 6px 8px;
+      border-bottom: 1px solid #333;
+    }
+
+    #sidebar td:first-child {
+      color: #77ccee;
+      font-weight: 500;
+    }
+
+    #map {
+      flex-grow: 1;
+      height: 100vh;
+    }
 
     #colorbar {
       position: absolute;
       bottom: 20px;
-      left: 20px;
+      left: 50px;
       z-index: 1000;
-      background: white;
+      background: #1e1e1e;
       padding: 10px;
       border-radius: 5px;
-      font-family: sans-serif;
-      box-shadow: 0 0 5px rgba(0,0,0,0.3);
+      font-family: 'Roboto', sans-serif;
+      box-shadow: 0 0 5px rgba(0,0,0,0.7);
       width: 300px;
+      color: #eee;
     }
 
     #colorbar svg {
@@ -35,13 +92,44 @@
       justify-content: space-between;
       font-size: 10px;
       margin-top: 4px;
+      color: #bbb;
+    }
+
+    details summary {
+      cursor: pointer;
+      font-weight: bold;
+      margin-bottom: 4px;
+      color: #34bddf;
+    }
+
+    /* Popup styling */
+    .leaflet-popup-content table td {
+      padding: 2px 5px;
+      border-bottom: 1px solid #ddd;
+      color: #222;
+    }
+
+    .leaflet-popup-content details summary {
+      color: #34bddf;
+      cursor: pointer;
     }
   </style>
 </head>
 <body>
+
+  <div id="sidebar">
+    <img src="https://github.com/NOAA-OceanExploration/ExplorationGapAnalysis/blob/main/docs/logos/logo.png?raw=true" 
+         alt="NOAA Ocean Exploration Logo" />
+    <h2>Visible Polygon Averages</h2>
+    <table id="stats-table">
+      <tbody>
+        <tr><td>Loading...</td></tr>
+      </tbody>
+    </table>
+  </div>
+
   <div id="map"></div>
 
-  <!-- Horizontal Colorbar -->
   <div id="colorbar">
     <div style="font-size: 12px; margin-bottom: 5px;">Exploration Score</div>
     <svg></svg>
@@ -52,16 +140,27 @@
   </div>
 
   <script>
+    // Mapping JSON property keys to friendly labels
+    const propertyLabels = {
+      geology: "Geological Sampling",
+      combined: "Total Exploration Score",
+      mapping: "Hi-Rez Mapping",
+      chemistry: "Water Chemistry",
+      occurrence: "Biological Sampling",
+      edna_score: "eDNA Sequencing",
+      wcsd_score: "Water Column Mapping"
+      // Add more custom labels here if you want
+      // e.g. 'oceanDepth': 'Ocean Depth (m)',
+    };
+
     const map = L.map('map', {
       worldCopyJump: true
     });
 
-    // Base layer
     L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {
       attribution: 'Tiles &copy; Esri &mdash; Source: Esri, i-cubed, USDA, USGS, AEX, GeoEye, Getmapping, Aerogrid, IGN, IGP, UPR-EGP, and the GIS User Community'
     }).addTo(map);
 
-    // Color scale (perceptual Lab interpolation)
     const color = d3.scaleLinear()
       .domain([0, 0.25, 0.5, 0.75, 1])
       .range(["#001743", "#001743", "#003087", "#34bddf", "white"])
@@ -73,18 +172,14 @@
       return color(transformed);
     }
 
-    // Canvas renderer for performance
     const canvasRenderer = L.canvas({ padding: 0.5 });
-
-    // Variables to hold all wrapped features and current layer
     let allWrappedFeatures = [];
     let currentLayer = null;
 
-    // Helper: add longitude wrapping (±360)
     function createWrappedFeatures(features) {
       const wrapped = [];
       features.forEach(feature => {
-        wrapped.push(feature); // original
+        wrapped.push(feature);
         [-360, 360].forEach(offset => {
           const newFeature = JSON.parse(JSON.stringify(feature));
           if (newFeature.geometry.type === 'Polygon') {
@@ -104,9 +199,7 @@
       return wrapped;
     }
 
-    // Filter features that intersect current map bounds (with buffer)
     function filterFeaturesByBounds(bounds, features) {
-      // Add buffer in degrees (to avoid flicker when panning)
       const bufferDegrees = 1.5;
       const bufferedBounds = bounds.pad(bufferDegrees / (bounds.getNorth() - bounds.getSouth()));
 
@@ -116,7 +209,35 @@
       });
     }
 
-    // Update the displayed layer with features inside the current map bounds
+    // Update sidebar stats with averages of visible polygon properties
+    function updateSidebarStats(visibleFeatures) {
+      if (!visibleFeatures.length) {
+        document.querySelector("#stats-table tbody").innerHTML = "<tr><td>No visible polygons</td></tr>";
+        return;
+      }
+
+      // Exclude 'h3_hex' property from sidebar stats
+      const keys = Object.keys(visibleFeatures[0].properties).filter(k => k !== 'h3_index');
+      const sums = {};
+      keys.forEach(k => sums[k] = 0);
+
+      visibleFeatures.forEach(f => {
+        keys.forEach(k => {
+          const val = f.properties[k];
+          sums[k] += (typeof val === 'number') ? val : 0;
+        });
+      });
+
+      const counts = visibleFeatures.length;
+      let html = "";
+      keys.forEach(key => {
+        const avg = sums[key] / counts;
+        html += `<tr><td>${propertyLabels[key] || key}</td><td>${avg.toFixed(2)}</td></tr>`;
+      });
+
+      document.querySelector("#stats-table tbody").innerHTML = html;
+    }
+
     function updateLayer() {
       const bounds = map.getBounds();
       const visibleFeatures = filterFeaturesByBounds(bounds, allWrappedFeatures);
@@ -142,10 +263,23 @@
         },
         onEachFeature: function(feature, layer) {
           layer.bindPopup(function () {
-            let popupContent = '<strong>Polygon Properties</strong><br>';
-            for (const key in feature.properties) {
-              popupContent += `${key}: ${feature.properties[key]}<br>`;
-            }
+            const detailedKeys = Object.keys(feature.properties);
+            let popupContent = `<details open>
+              <summary>Polygon Properties</summary>
+              <table>`;
+            detailedKeys.forEach(key => {
+              const val = feature.properties[key];
+              popupContent += `
+                <tr>
+                  <td><strong>${propertyLabels[key] || key}</strong></td>
+                  <td>${
+                    typeof val === 'number'
+                      ? val.toFixed(2)
+                      : val
+                  }</td>
+                </tr>`;
+            });
+            popupContent += `</table></details>`;
             return popupContent;
           });
 
@@ -166,27 +300,20 @@
           });
         }
       }).addTo(map);
+
+      // Update the sidebar averages
+      updateSidebarStats(visibleFeatures);
     }
 
-    // Load GeoJSON, wrap features, and initialize map layer + event handlers
     fetch('http://localhost:8000/geo/h3_hexagons_03.geojson')
       .then(res => res.json())
       .then(geojson => {
         allWrappedFeatures = createWrappedFeatures(geojson.features);
-
-        // Initially fit map to original data bounds (no wrapping)
-        //const originalLayer = L.geoJSON(geojson);
-        //map.fitBounds(originalLayer.getBounds());
-
-        // Initial render
         updateLayer();
-
-        // Update layer on map move/zoom end
         map.on('moveend', updateLayer);
       })
       .catch(err => console.error('Error loading GeoJSON:', err));
 
-    // Create horizontal colorbar
     const svg = d3.select("#colorbar svg");
     const width = 300;
     const height = 20;
@@ -194,7 +321,6 @@
 
     const data = d3.range(n).map(i => i / (n - 1));
 
-    // Set initial map center & zoom (will be overridden by fitBounds on data load)
     map.setView([25, -130], 4);
 
     svg.selectAll("rect")
@@ -204,7 +330,7 @@
       .attr("y", 0)
       .attr("width", width / n)
       .attr("height", height)
-      .attr("fill", d => color(Math.pow(1 - d, 4))); // match transformed scale
+      .attr("fill", d => color(Math.pow(1 - d, 4)));
   </script>
 </body>
 </html>
