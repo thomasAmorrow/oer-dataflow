@@ -9,7 +9,6 @@
   <script src="https://d3js.org/d3.v7.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/d3-scale-chromatic@3.0.0/dist/d3-scale-chromatic.min.js"></script>
   <style>
-    /* Roboto font from Google Fonts */
     @import url('https://fonts.googleapis.com/css2?family=Roboto&display=swap');
 
     body {
@@ -20,13 +19,13 @@
       display: flex;
       height: 100vh;
       overflow: hidden;
-      flex-direction: row-reverse; /* keep sidebar on right */
+      flex-direction: row-reverse;
     }
 
     #sidebar {
       width: clamp(240px, 25vw, 320px);
       background: #1e1e1e;
-      box-shadow: -3px 0 10px rgba(0,0,0,0.7); /* shadow on left for right sidebar */
+      box-shadow: -3px 0 10px rgba(0,0,0,0.7);
       padding: 20px;
       overflow-y: auto;
       display: flex;
@@ -109,16 +108,54 @@
       color: #34bddf;
     }
 
-    /* Popup styling */
-    .leaflet-popup-content table td {
-      padding: 2px 5px;
-      border-bottom: 1px solid #ddd;
-      color: #222;
+    /* Popup styling override to match sidebar theme */
+    .custom-popup {
+      background: #1e1e1e;
+      color: #eee;
+      font-family: 'Roboto', sans-serif;
+      padding: 8px;
+      border-radius: 6px;
+      font-size: 13px;
     }
 
-    .leaflet-popup-content details summary {
-      color: #34bddf;
-      cursor: pointer;
+    .custom-popup h4 {
+      text-align: center;
+      margin: 0 0 8px 0;
+      font-size: 15px;
+      color: #ffffff;
+    }
+
+    .custom-popup table {
+      width: 100%;
+      border-collapse: collapse;
+    }
+
+    .custom-popup td {
+      padding: 3px 6px;
+      border-bottom: 1px solid #333;
+      color: #ddd;
+    }
+
+    .custom-popup td:first-child {
+      color: #ffffff;
+    }
+
+    /* Darken the entire popup shell including the wrapper and tip */
+    .leaflet-popup-content-wrapper {
+      background: #1e1e1e;
+      color: #eee;
+      border-radius: 8px;
+      border: 2px solid #34bddf;;
+      box-shadow: 0 0 8px rgba(0,0,0,0.6);
+    }
+
+    .leaflet-popup-tip {
+      background: #34bddf;
+    }
+
+    .leaflet-popup-content {
+      margin: 8px;
+      max-width: 280px;
     }
   </style>
 </head>
@@ -157,7 +194,6 @@
   </div>
 
   <script>
-    // Mapping JSON property keys to friendly labels
     const propertyLabels = {
       h3_index: "H3 Hexagon",
       geology: "Geological Sampling",
@@ -167,8 +203,6 @@
       occurrence: "Biological Sampling",
       edna_score: "eDNA Sequencing",
       wcsd_score: "Water Column Mapping"
-      // Add more custom labels here if you want
-      // e.g. 'oceanDepth': 'Ocean Depth (m)',
     };
 
     const map = L.map('map', {
@@ -181,7 +215,7 @@
     }).addTo(map);
 
     L.control.attribution({
-      prefix: false  // remove 'Leaflet' link prefix
+      prefix: false
     }).addAttribution('Map powered by Leaflet | Imagery © Esri, i-cubed, USDA, USGS, AEX, GeoEye, Getmapping, Aerogrid, IGN, IGP, UPR-EGP, and GIS User Community')
       .addTo(map);
 
@@ -226,14 +260,12 @@
     function filterFeaturesByBounds(bounds, features) {
       const bufferDegrees = 1.5;
       const bufferedBounds = bounds.pad(bufferDegrees / (bounds.getNorth() - bounds.getSouth()));
-
       return features.filter(feature => {
         const featureBounds = L.geoJSON(feature).getBounds();
         return bufferedBounds.intersects(featureBounds);
       });
     }
 
-    // Update sidebar stats with averages of visible polygon properties
     function updateSidebarStats(visibleFeatures) {
       if (!visibleFeatures.length) {
         document.querySelector("#stats-table tbody").innerHTML = "<tr><td>No visible polygons</td></tr>";
@@ -255,26 +287,21 @@
       let html = "";
       keys.forEach(key => {
         const avg = sums[key] / counts;
-        const widthPercent = Math.min((avg / 1) * 100, 100); // Assuming max score is 1
+        const widthPercent = Math.min((avg / 1) * 100, 100);
 
-        // First row: label and number
         html += `
           <tr>
             <td>${propertyLabels[key] || key}</td>
             <td style="text-align: right; font-weight: bold; color: #eee;">${avg.toFixed(3)}</td>
           </tr>
-        `;
-
-        // Second row: bar spanning both columns, bar offset to align under number column
-        html += `
           <tr>
             <td colspan="2" style="padding: 0;">
               <div style="position: relative; width: 100%; height: 12px; background: #333; border-radius: 3px; overflow: hidden;">
                 <div style="
                   position: absolute;
                   top: 0; bottom: 0;
-                  left: 0%; /* start bar at midpoint (label col width approx) */
-                  width: ${widthPercent / 2}%; /* scale bar width relative to half table */
+                  left: 0%;
+                  width: ${widthPercent / 2}%;
                   background: #34bddf;
                   border-radius: 3px 0 0 3px;
                 "></div>
@@ -286,7 +313,6 @@
 
       document.querySelector("#stats-table tbody").innerHTML = html;
     }
-
 
     function updateLayer() {
       const bounds = map.getBounds();
@@ -313,23 +339,20 @@
         },
         onEachFeature: function(feature, layer) {
           layer.bindPopup(function () {
-            const detailedKeys = Object.keys(feature.properties);
-            let popupContent = `<details open>
-              <summary>Polygon Properties</summary>
-              <table>`;
-            detailedKeys.forEach(key => {
-              const val = feature.properties[key];
+            const { h3_index, ...rest } = feature.properties;
+            let popupContent = `
+              <div class="custom-popup">
+                <h4>H3 Hex: ${h3_index}</h4>
+                <table>`;
+            for (const key in rest) {
+              const val = rest[key];
               popupContent += `
                 <tr>
-                  <td><strong>${propertyLabels[key] || key}</strong></td>
-                  <td>${
-                    typeof val === 'number'
-                      ? val.toFixed(3)
-                      : val
-                  }</td>
+                  <td>${propertyLabels[key] || key}</td>
+                  <td>${typeof val === 'number' ? val.toFixed(3) : val}</td>
                 </tr>`;
-            });
-            popupContent += `</table></details>`;
+            }
+            popupContent += `</table></div>`;
             return popupContent;
           });
 
@@ -354,7 +377,6 @@
         }
       }).addTo(map);
 
-      // Update the sidebar averages
       updateSidebarStats(visibleFeatures);
     }
 
@@ -371,9 +393,7 @@
     const width = 300;
     const height = 20;
     const n = 20;
-
     const data = d3.range(n).map(i => i / (n - 1));
-
     map.setView([25, -130], 4);
 
     svg.selectAll("rect")
