@@ -24,7 +24,7 @@
     }
 
     #sidebar {
-      width: 320px;
+      width: clamp(240px, 25vw, 320px);
       background: #1e1e1e;
       box-shadow: -3px 0 10px rgba(0,0,0,0.7); /* shadow on left for right sidebar */
       padding: 20px;
@@ -66,6 +66,12 @@
     #map {
       flex-grow: 1;
       height: 100vh;
+      overflow: hidden;
+    }
+
+    #map:focus {
+      outline: none;
+      box-shadow: none;
     }
 
     #colorbar {
@@ -132,10 +138,9 @@
         This map displays <a href="https://oceanexplorer.noaa.gov/" target="_blank" rel="noopener noreferrer" style="color: #34bddf; text-decoration: none;">NOAA Ocean Exploration</a> Gap Analysis scores. Higher scores mean more explored areas; lower scores indicate less explored. White bordered hexagons have no observations (unexplored). The dynamic table shows average scores for hexagons visible on the map.
       </p>
       <p>
-        Source and code available on 
+        Source and code available on the 
         <a href="https://github.com/NOAA-OceanExploration/ExplorationGapAnalysis" target="_blank" rel="noopener noreferrer" style="color: #34bddf; text-decoration: none;">
-          GitHub
-        </a>.
+          NOAA-OceanExploration GitHub</a> along with higher resolution results.
       </p>
     </div>
   </div>
