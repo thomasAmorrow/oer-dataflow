@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>Leaflet GeoJSON Polygons with Canvas & Viewport Filtering</title>
+  <title>NOAA Ocean Exploration Gap Analysis</title>
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
   <script src="https://d3js.org/d3.v7.min.js"></script>
@@ -44,7 +44,8 @@
     #sidebar h2 {
       margin: 0 0 10px 0;
       font-weight: 700;
-      color: #34bddf;
+      color: #ffffff;
+      text-align: center; 
     }
 
     #sidebar table {
@@ -70,7 +71,7 @@
     #colorbar {
       position: absolute;
       bottom: 20px;
-      left: 50px;
+      left: 20px;
       z-index: 1000;
       background: #1e1e1e;
       padding: 10px;
@@ -126,6 +127,17 @@
         <tr><td>Loading...</td></tr>
       </tbody>
     </table>
+    <div id="sidebar-context" style="margin-top: auto; font-size: 16px; color: #ffffff; line-height: 1.4;">
+      <p>
+        This map displays <a href="https://oceanexplorer.noaa.gov/" target="_blank" rel="noopener noreferrer" style="color: #34bddf; text-decoration: none;">NOAA Ocean Exploration</a> Gap Analysis scores. Higher scores mean more explored areas; lower scores indicate less explored. White bordered hexagons have no observations (unexplored). The dynamic table shows average scores for hexagons visible on the map.
+      </p>
+      <p>
+        Source and code available on 
+        <a href="https://github.com/NOAA-OceanExploration/ExplorationGapAnalysis" target="_blank" rel="noopener noreferrer" style="color: #34bddf; text-decoration: none;">
+          GitHub
+        </a>.
+      </p>
+    </div>
   </div>
 
   <div id="map"></div>
@@ -134,14 +146,15 @@
     <div style="font-size: 12px; margin-bottom: 5px;">Exploration Score</div>
     <svg></svg>
     <div id="colorbar-labels">
-      <span>0</span>
-      <span>&gt; 0.2</span>
+      <span>unexplored</span>
+      <span>more explored</span>
     </div>
   </div>
 
   <script>
     // Mapping JSON property keys to friendly labels
     const propertyLabels = {
+      h3_index: "H3 Hexagon",
       geology: "Geological Sampling",
       combined: "Total Exploration Score",
       mapping: "Hi-Rez Mapping",
@@ -154,12 +167,18 @@
     };
 
     const map = L.map('map', {
-      worldCopyJump: true
+      worldCopyJump: true,
+      attributionControl: false,
     });
 
     L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {
-      attribution: 'Tiles &copy; Esri &mdash; Source: Esri, i-cubed, USDA, USGS, AEX, GeoEye, Getmapping, Aerogrid, IGN, IGP, UPR-EGP, and the GIS User Community'
+      attribution: ''
     }).addTo(map);
+
+    L.control.attribution({
+      prefix: false  // remove 'Leaflet' link prefix
+    }).addAttribution('Map powered by Leaflet | Imagery © Esri, i-cubed, USDA, USGS, AEX, GeoEye, Getmapping, Aerogrid, IGN, IGP, UPR-EGP, and GIS User Community')
+      .addTo(map);
 
     const color = d3.scaleLinear()
       .domain([0, 0.25, 0.5, 0.75, 1])
@@ -216,7 +235,6 @@
         return;
       }
 
-      // Exclude 'h3_hex' property from sidebar stats
       const keys = Object.keys(visibleFeatures[0].properties).filter(k => k !== 'h3_index');
       const sums = {};
       keys.forEach(k => sums[k] = 0);
@@ -232,11 +250,38 @@
       let html = "";
       keys.forEach(key => {
         const avg = sums[key] / counts;
-        html += `<tr><td>${propertyLabels[key] || key}</td><td>${avg.toFixed(2)}</td></tr>`;
+        const widthPercent = Math.min((avg / 1) * 100, 100); // Assuming max score is 1
+
+        // First row: label and number
+        html += `
+          <tr>
+            <td>${propertyLabels[key] || key}</td>
+            <td style="text-align: right; font-weight: bold; color: #eee;">${avg.toFixed(3)}</td>
+          </tr>
+        `;
+
+        // Second row: bar spanning both columns, bar offset to align under number column
+        html += `
+          <tr>
+            <td colspan="2" style="padding: 0;">
+              <div style="position: relative; width: 100%; height: 12px; background: #333; border-radius: 3px; overflow: hidden;">
+                <div style="
+                  position: absolute;
+                  top: 0; bottom: 0;
+                  left: 0%; /* start bar at midpoint (label col width approx) */
+                  width: ${widthPercent / 2}%; /* scale bar width relative to half table */
+                  background: #34bddf;
+                  border-radius: 3px 0 0 3px;
+                "></div>
+              </div>
+            </td>
+          </tr>
+        `;
       });
 
       document.querySelector("#stats-table tbody").innerHTML = html;
     }
+
 
     function updateLayer() {
       const bounds = map.getBounds();
@@ -255,9 +300,9 @@
           const value = feature.properties.combined ?? 0;
           return {
             color: getColor(value),
-            weight: 1,
-            opacity: 0.8,
-            fillOpacity: 0.1,
+            weight: value === 0 ? 1 : 0.25,
+            opacity: 1.0,
+            fillOpacity: 0.25,
             fill: true
           };
         },
@@ -274,7 +319,7 @@
                   <td><strong>${propertyLabels[key] || key}</strong></td>
                   <td>${
                     typeof val === 'number'
-                      ? val.toFixed(2)
+                      ? val.toFixed(3)
                       : val
                   }</td>
                 </tr>`;
@@ -286,15 +331,18 @@
           layer.on({
             mouseover: function () {
               layer.setStyle({
-                weight: 3,
-                fillOpacity: 0.3
+                weight: 4,
+                opacity: 1.0,
+                fillOpacity: 0.6
               });
               layer.bringToFront();
             },
             mouseout: function () {
+              const value = feature.properties.combined ?? 0;
               layer.setStyle({
-                weight: 1,
-                fillOpacity: 0.1
+                weight: value === 0 ? 1 : 0.25,
+                opacity: 1.0,
+                fillOpacity: 0.25,
               });
             }
           });
@@ -330,7 +378,7 @@
       .attr("y", 0)
       .attr("width", width / n)
       .attr("height", height)
-      .attr("fill", d => color(Math.pow(1 - d, 4)));
+      .attr("fill", d => color(Math.pow(1 - d, 1)));
   </script>
 </body>
 </html>
