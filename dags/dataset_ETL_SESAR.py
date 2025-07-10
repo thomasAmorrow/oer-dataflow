@@ -57,7 +57,7 @@ def fetch_igsns_for_hexes():
             boundary = adjust_longitudes_if_crosses_antimeridian(boundary)
 
         boundary = close_polygon(boundary)
-        geostring = ",".join([f"{lng} {lat}" for lat, lng in boundary])
+        geostring = ",".join([f"{round(lng, 6)} {round(lat, 6)}" for lat, lng in boundary])
 
         page = 1
         while True:
