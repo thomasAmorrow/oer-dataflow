@@ -9,6 +9,7 @@ from airflow.providers.postgres.hooks.postgres import PostgresHook
 from airflow.operators.python_operator import PythonOperator
 from datetime import datetime, timedelta
 
+
 # Delay between API hits (in seconds)
 API_HIT_DELAY = 1  # Adjustable via env var or Variable if needed
 PAGE_LIMIT = 500  # Max samples per request
@@ -47,12 +48,10 @@ def fetch_hexes():
 def fetch_igsns_for_hexes():
     hexes = fetch_hexes()
     all_igsns = set()
-    total_hexes = len(hexes)
 
-    for idx, h3_index in enumerate(hexes, 1):
-        logging.info(f"Processing hex {idx} of {total_hexes}: {h3_index}")
-
-        boundary = h3.cell_to_boundary(h3_index)
+    for h3_index in hexes:
+        boundary_tuple = h3.cell_to_boundary(h3_index)
+        boundary = list(boundary_tuple)
 
         if crosses_antimeridian(boundary):
             boundary = adjust_longitudes_if_crosses_antimeridian(boundary)
@@ -72,7 +71,6 @@ def fetch_igsns_for_hexes():
                 if not igsns:
                     break
                 all_igsns.update(igsns)
-                logging.info(f"Fetched {len(igsns)} IGSNs from page {page} of hex {h3_index}")
                 if len(igsns) < PAGE_LIMIT:
                     break
                 page += 1
@@ -143,9 +141,7 @@ def fetch_and_store_metadata():
         );
     """)
 
-    total_igsns = len(igsn_list)
-    for i, igsn in enumerate(igsn_list, 1):
-        logging.info(f"Fetching metadata for IGSN {i} of {total_igsns}: {igsn}")
+    for igsn in igsn_list:
         url = f"https://app.geosamples.org/sample/igsn/{igsn}"
         headers = {'Accept': 'application/json'}
         try:
