@@ -9,9 +9,8 @@ from airflow.providers.postgres.hooks.postgres import PostgresHook
 from airflow.operators.python_operator import PythonOperator
 from datetime import datetime, timedelta
 
-
 # Delay between API hits (in seconds)
-API_HIT_DELAY = 4  # Adjustable via env var or Variable if needed
+API_HIT_DELAY = 1  # Adjustable via env var or Variable if needed
 PAGE_LIMIT = 500  # Max samples per request
 
 def crosses_antimeridian(boundary):
@@ -49,7 +48,9 @@ def fetch_igsns_for_hexes():
     hexes = fetch_hexes()
     all_igsns = set()
 
-    for h3_index in hexes:
+    for idx, h3_index in enumerate(hexes):
+        logging.info(f"Searching IGSNs for hex {h3_index} ({idx+1}/{len(hexes)})...")
+
         boundary_tuple = h3.cell_to_boundary(h3_index)
         boundary = list(boundary_tuple)
 
@@ -57,45 +58,31 @@ def fetch_igsns_for_hexes():
             boundary = adjust_longitudes_if_crosses_antimeridian(boundary)
 
         boundary = close_polygon(boundary)
-        geostring = ",".join([f"{round(lng, 6)} {round(lat, 6)}" for lat, lng in boundary])
+        geostring = ",".join([f"{lng} {lat}" for lat, lng in boundary])
 
         page = 1
         while True:
             url = f"https://app.geosamples.org/samples/polygon/{geostring}?limit={PAGE_LIMIT}&page_no={page}&hide_private=1"
             headers = {'Accept': 'application/json'}
-
             try:
-                logging.info(f"Searching IGSNs for hex {h3_index}...")
                 response = requests.get(url, headers=headers)
                 if response.status_code == 500:
-                    # Retry once
-                    logging.warning(f"500 error for {h3_index}, retrying once...")
-                    time.sleep(10)
-                    response = requests.get(url, headers=headers)
+                    logging.warning(f"Empty or failed polygon for {h3_index}, skipping.")
+                    break
 
                 response.raise_for_status()
                 data = response.json()
                 igsns = data.get("igsn_list", [])
-                
                 if not igsns:
-                    logging.info(f"No IGSNs found for hex {h3_index}.")
                     break
-
                 all_igsns.update(igsns)
-
                 if len(igsns) < PAGE_LIMIT:
                     break
-
                 page += 1
                 time.sleep(API_HIT_DELAY)
-
-            except requests.exceptions.HTTPError as e:
+            except Exception as e:
                 logging.warning(f"Failed fetching IGSNs for {h3_index}: {e}")
                 break
-            except Exception as e:
-                logging.warning(f"Unexpected error fetching IGSNs for {h3_index}: {e}")
-                break
-
 
     with open("/mnt/bucket/sesar_igsns.json", "w") as f:
         json.dump(list(all_igsns), f)
@@ -159,7 +146,8 @@ def fetch_and_store_metadata():
         );
     """)
 
-    for igsn in igsn_list:
+    for idx, igsn in enumerate(igsn_list):
+        logging.info(f"Fetching metadata for IGSN {igsn} ({idx+1}/{len(igsn_list)})")
         url = f"https://app.geosamples.org/sample/igsn/{igsn}"
         headers = {'Accept': 'application/json'}
         try:
