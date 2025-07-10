@@ -1,11 +1,10 @@
 <p align="center">
-  <img src="https://github.com/thomasAmorrow/oer-ega/blob/main/docs/logos/logo_banner.png?raw=true" alt="vlogo" width="800"/>
+  <img src="https://github.com/thomasAmorrow/oer-ega/blob/main/docs/logos/generic_logo_wide.png?raw=true" alt="vlogo" width="800"/>
 </p>
 
 [![Version](https://img.shields.io/badge/version-0.2.0--beta-orange)]()
 [![DOI](https://zenodo.org/badge/910538525.svg)](https://doi.org/10.5281/zenodo.15496794)
 [![dataset DOI](https://img.shields.io/badge/DATASET%20DOI-10.5281/zenodo.15490755-blue)](https://doi.org/10.5281/zenodo.15490755)
-[![NOAA Ocean Exploration](https://img.shields.io/badge/NOAA-Ocean%20Exploration-005493)](https://oceanexplorer.noaa.gov)
 [![License: CC0-1.0](https://licensebuttons.net/l/zero/1.0/80x15.png)](http://creativecommons.org/publicdomain/zero/1.0/)
 
 [![Docker](https://img.shields.io/badge/docker-28.0.4-blue?logo=docker)](https://www.docker.com/)
