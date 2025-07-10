@@ -47,9 +47,10 @@ def fetch_hexes():
 def fetch_igsns_for_hexes():
     hexes = fetch_hexes()
     all_igsns = set()
+    total_hexes = len(hexes)
 
     for idx, h3_index in enumerate(hexes):
-        logging.info(f"Searching IGSNs for hex {h3_index} ({idx+1}/{len(hexes)})...")
+        logging.info(f"Searching IGSNs for hex {h3_index} ({idx+1}/{total_hexes})...")
 
         boundary_tuple = h3.cell_to_boundary(h3_index)
         boundary = list(boundary_tuple)
