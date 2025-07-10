@@ -9,8 +9,6 @@ from airflow.providers.postgres.hooks.postgres import PostgresHook
 from airflow.operators.python_operator import PythonOperator
 from datetime import datetime, timedelta
 
-csv.field_size_limit(sys.maxsize)
-
 # Delay between API hits (in seconds)
 API_HIT_DELAY = 1  # Adjustable via env var or Variable if needed
 PAGE_LIMIT = 500  # Max samples per request
