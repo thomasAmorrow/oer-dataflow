@@ -64,11 +64,13 @@ def fetch_igsns_for_hexes():
             url = f"https://app.geosamples.org/samples/polygon/{geostring}?limit={PAGE_LIMIT}&page_no={page}&hide_private=1"
             headers = {'Accept': 'application/json'}
             try:
+                logging.info(f"Searching IGSNs for hex {h3_index}...")
                 response = requests.get(url, headers=headers)
                 response.raise_for_status()
                 data = response.json()
                 igsns = data.get("igsn_list", [])
                 if not igsns:
+                    logging.info(f"No IGSNs found for hex {h3_index} (page {page}) — skipping.")
                     break
                 all_igsns.update(igsns)
                 if len(igsns) < PAGE_LIMIT:
