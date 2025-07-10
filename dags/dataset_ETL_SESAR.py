@@ -11,7 +11,7 @@ from datetime import datetime, timedelta
 
 
 # Delay between API hits (in seconds)
-API_HIT_DELAY = 1  # Adjustable via env var or Variable if needed
+API_HIT_DELAY = 4  # Adjustable via env var or Variable if needed
 PAGE_LIMIT = 500  # Max samples per request
 
 def crosses_antimeridian(boundary):
@@ -63,23 +63,39 @@ def fetch_igsns_for_hexes():
         while True:
             url = f"https://app.geosamples.org/samples/polygon/{geostring}?limit={PAGE_LIMIT}&page_no={page}&hide_private=1"
             headers = {'Accept': 'application/json'}
+
             try:
                 logging.info(f"Searching IGSNs for hex {h3_index}...")
                 response = requests.get(url, headers=headers)
+                if response.status_code == 500:
+                    # Retry once
+                    logging.warning(f"500 error for {h3_index}, retrying once...")
+                    time.sleep(10)
+                    response = requests.get(url, headers=headers)
+
                 response.raise_for_status()
                 data = response.json()
                 igsns = data.get("igsn_list", [])
+                
                 if not igsns:
-                    logging.info(f"No IGSNs found for hex {h3_index} (page {page}) — skipping.")
+                    logging.info(f"No IGSNs found for hex {h3_index}.")
                     break
+
                 all_igsns.update(igsns)
+
                 if len(igsns) < PAGE_LIMIT:
                     break
+
                 page += 1
                 time.sleep(API_HIT_DELAY)
-            except Exception as e:
+
+            except requests.exceptions.HTTPError as e:
                 logging.warning(f"Failed fetching IGSNs for {h3_index}: {e}")
                 break
+            except Exception as e:
+                logging.warning(f"Unexpected error fetching IGSNs for {h3_index}: {e}")
+                break
+
 
     with open("/mnt/bucket/sesar_igsns.json", "w") as f:
         json.dump(list(all_igsns), f)
