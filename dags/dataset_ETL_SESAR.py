@@ -1,9 +1,8 @@
 import time
 import logging
-import csv
-import wget
-import os
-import shutil
+import json
+import requests
+import h3
 import sys
 from airflow import DAG
 from airflow.providers.postgres.hooks.postgres import PostgresHook
@@ -12,143 +11,190 @@ from datetime import datetime, timedelta
 
 csv.field_size_limit(sys.maxsize)
 
+# Delay between API hits (in seconds)
+API_HIT_DELAY = 1  # Adjustable via env var or Variable if needed
+PAGE_LIMIT = 500  # Max samples per request
 
-def fetch_IMLGS_table():
-    url = 'https://www.ngdc.noaa.gov/geosamples-api/api//samples/csv?order=facility_code%3Aasc&order=platform%3Aasc&order=cruise%3Aasc&order=sample%3Aasc'
-    filename = wget.download(url)
+def crosses_antimeridian(boundary):
+    longitudes = [lng for lat, lng in boundary]
+    return any(
+        lng <= -90 and longitudes[i+1] > 90 or
+        lng >= 90 and longitudes[i+1] < -90
+        for i, lng in enumerate(longitudes[:-1])
+    )
 
-    if os.path.exists(filename):
-        logging.info("Download successful!")
-        shutil.move("./geosamples_export.csv", "/mnt/bucket/IMLGS.csv")
+def adjust_longitudes_if_crosses_antimeridian(boundary):
+    return [
+        [lat, lng + 360 if lng < 0 else lng]
+        for lat, lng in boundary
+    ]
 
-        input_file="/mnt/bucket/IMLGS.csv"
-        output_file="/mnt/bucket/IMLGS_cleaned.csv"
+def close_polygon(polygon):
+    if not polygon:
+        raise ValueError("Polygon is empty and cannot be closed.")
+    if polygon[0] != polygon[-1]:
+        polygon.append(polygon[0])
+    return polygon
 
-        with open(input_file, 'r', newline='', encoding='utf-8') as infile, \
-            open(output_file, 'w', newline='', encoding='utf-8') as outfile:
-            
-            # Create a CSV reader and writer
-            reader = csv.reader(infile)
-            writer = csv.writer(outfile, quotechar='"', quoting=csv.QUOTE_MINIMAL)
-
-            # Process each row
-            for row in reader:
-                try:    
-                    # Check if the number of fields is 50
-                    if len(row) == 24:
-                        # Create a new row with quotes around most fields, except for fields 22 and 23
-                        processed_row = [
-                            field for index, field in enumerate(row)
-                        ]
-                        # Write the processed row to the output file
-                        writer.writerow(processed_row)
-                except csv.Error as e:
-                    # Handle the error: skip the row with the large field
-                    logging.info(f"Skipping row due to error: {e}")
-                    continue  # Skip the current row and proceed to the next one
-        
-        logging.info("Finished cleaning file, cleanup started...")
-
-def load_IMLGS_table():
-
-    # Initialize PostgresHook
+def fetch_hexes():
     pg_hook = PostgresHook(postgres_conn_id="oceexp-db")
+    conn = pg_hook.get_conn()
+    cursor = conn.cursor()
+    cursor.execute("SELECT hex_03 FROM ega_score_03")
+    hexes = [row[0] for row in cursor.fetchall()]
+    cursor.close()
+    conn.close()
+    return hexes
 
-    sql_statements = """
-        CREATE EXTENSION IF NOT EXISTS h3;
-        CREATE EXTENSION IF NOT EXISTS h3_postgis CASCADE;
-        
-        CREATE TABLE IF NOT EXISTS imlgs (
-            repository VARCHAR,
-            platform VARCHAR,
-            cruiseID VARCHAR,
-            sampleID VARCHAR,
-            device VARCHAR,
-            date VARCHAR,
-            dateEnded VARCHAR,
-            latitude FLOAT,
-            endLatitude	FLOAT,
-            longitude FLOAT,
-            endLongitude FLOAT,
-            depth FLOAT,
-            endDepth FLOAT,
-            storage	VARCHAR,
-            coreLength_cm FLOAT,
-            coreDiameter_cm FLOAT,
-            principalInv VARCHAR,
-            physiogProvince VARCHAR,
-            lake VARCHAR,
-            IGSN VARCHAR,
-            altCruiseID VARCHAR,
-            comments VARCHAR,
-            NCEIurl VARCHAR,
-            IMLGSnumber VARCHAR
+def fetch_igsns_for_hexes():
+    hexes = fetch_hexes()
+    all_igsns = set()
+    total_hexes = len(hexes)
+
+    for idx, h3_index in enumerate(hexes, 1):
+        logging.info(f"Processing hex {idx} of {total_hexes}: {h3_index}")
+
+        boundary = h3.cell_to_boundary(h3_index)
+
+        if crosses_antimeridian(boundary):
+            boundary = adjust_longitudes_if_crosses_antimeridian(boundary)
+
+        boundary = close_polygon(boundary)
+        geostring = ",".join([f"{lng} {lat}" for lat, lng in boundary])
+
+        page = 1
+        while True:
+            url = f"https://app.geosamples.org/samples/polygon/{geostring}?limit={PAGE_LIMIT}&page_no={page}&hide_private=1"
+            headers = {'Accept': 'application/json'}
+            try:
+                response = requests.get(url, headers=headers)
+                response.raise_for_status()
+                data = response.json()
+                igsns = data.get("igsn_list", [])
+                if not igsns:
+                    break
+                all_igsns.update(igsns)
+                logging.info(f"Fetched {len(igsns)} IGSNs from page {page} of hex {h3_index}")
+                if len(igsns) < PAGE_LIMIT:
+                    break
+                page += 1
+                time.sleep(API_HIT_DELAY)
+            except Exception as e:
+                logging.warning(f"Failed fetching IGSNs for {h3_index}: {e}")
+                break
+
+    with open("/mnt/bucket/sesar_igsns.json", "w") as f:
+        json.dump(list(all_igsns), f)
+
+def fetch_and_store_metadata():
+    with open("/mnt/bucket/sesar_igsns.json") as f:
+        igsn_list = json.load(f)
+
+    pg_hook = PostgresHook(postgres_conn_id="oceexp-db")
+    conn = pg_hook.get_conn()
+    cursor = conn.cursor()
+
+    cursor.execute("""
+        CREATE TABLE IF NOT EXISTS sesar_samples (
+            igsn TEXT PRIMARY KEY,
+            material TEXT,
+            classification TEXT,
+            field_name TEXT,
+            description TEXT,
+            collection_method TEXT,
+            collection_method_desc TEXT,
+            size TEXT,
+            geological_age TEXT,
+            geological_unit TEXT,
+            comment TEXT,
+            purpose TEXT,
+            lat_start FLOAT,
+            lat_end FLOAT,
+            lon_start FLOAT,
+            lon_end FLOAT,
+            elevation_start FLOAT,
+            elevation_end FLOAT,
+            physiographic_feature TEXT,
+            physiographic_feature_name TEXT,
+            location_desc TEXT,
+            locality TEXT,
+            locality_desc TEXT,
+            country TEXT,
+            state_province TEXT,
+            county TEXT,
+            city TEXT,
+            field_program TEXT,
+            platform_type TEXT,
+            platform_name TEXT,
+            platform_desc TEXT,
+            launch_type TEXT,
+            launch_platform_name TEXT,
+            launch_id TEXT,
+            collector TEXT,
+            collector_detail TEXT,
+            collection_date_start DATE,
+            collection_date_end DATE,
+            archive TEXT,
+            archive_contact TEXT,
+            orig_archive TEXT,
+            orig_archive_contact TEXT,
+            parent_igsns TEXT[],
+            sibling_igsns TEXT[],
+            child_igsns TEXT[],
+            raw_json JSONB
         );
+    """)
 
-        TRUNCATE imlgs;
+    total_igsns = len(igsn_list)
+    for i, igsn in enumerate(igsn_list, 1):
+        logging.info(f"Fetching metadata for IGSN {i} of {total_igsns}: {igsn}")
+        url = f"https://app.geosamples.org/sample/igsn/{igsn}"
+        headers = {'Accept': 'application/json'}
+        try:
+            resp = requests.get(url, headers=headers)
+            resp.raise_for_status()
+            data = resp.json()
+            sample = data.get("sample", {})
 
-        COPY imlgs (
-            repository, 
-            platform,
-            cruiseID,
-            sampleID,
-            device,
-            date,
-            dateEnded,
-            latitude,
-            endLatitude,
-            longitude,
-            endLongitude,
-            depth,
-            endDepth,
-            storage,
-            coreLength_cm,
-            coreDiameter_cm,
-            principalInv,
-            physiogProvince,
-            lake,
-            IGSN,
-            altCruiseID,
-            comments,
-            NCEIurl,
-            IMLGSnumber
-        )
-        FROM '/mnt/bucket/IMLGS_cleaned.csv'
-        WITH (FORMAT csv, HEADER true);
-    """
+            cursor.execute(
+                """
+                INSERT INTO sesar_samples (igsn, material, classification, field_name, description,
+                    collection_method, collection_method_desc, size, geological_age, geological_unit,
+                    comment, purpose, lat_start, lat_end, lon_start, lon_end, elevation_start, elevation_end,
+                    physiographic_feature, physiographic_feature_name, location_desc, locality, locality_desc,
+                    country, state_province, county, city, field_program, platform_type, platform_name,
+                    platform_desc, launch_type, launch_platform_name, launch_id, collector, collector_detail,
+                    collection_date_start, collection_date_end, archive, archive_contact, orig_archive,
+                    orig_archive_contact, parent_igsns, sibling_igsns, child_igsns, raw_json)
+                VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s,
+                        %s, %s, %s, %s, %s, %s, %s, %s, %s, %s,
+                        %s, %s, %s, %s, %s, %s, %s, %s, %s, %s,
+                        %s, %s, %s, %s, %s, %s, %s, %s, %s, %s,
+                        %s, %s, %s, %s, %s, %s)
+                ON CONFLICT (igsn) DO NOTHING;
+                """,
+                (
+                    sample.get("igsn"), sample.get("material"), sample.get("classification"), sample.get("field_name"), sample.get("description"),
+                    sample.get("collection_method"), sample.get("collection_method_desc"), sample.get("size"), sample.get("geological_age"), sample.get("geological_unit"),
+                    sample.get("comment"), sample.get("purpose"), sample.get("latitude_start"), sample.get("latitude_end"), sample.get("longitude_start"),
+                    sample.get("longitude_end"), sample.get("elevation_start"), sample.get("elevation_end"), sample.get("physiographic_feature"),
+                    sample.get("physiographic_feature_name"), sample.get("location_desc"), sample.get("locality"), sample.get("locality_desc"), sample.get("country"),
+                    sample.get("state_province"), sample.get("county"), sample.get("city"), sample.get("field_program"), sample.get("platform_type"),
+                    sample.get("platform_name"), sample.get("platform_desc"), sample.get("launch_type"), sample.get("launch_platform_name"), sample.get("launch_id"),
+                    sample.get("collector"), sample.get("collector_detail"), sample.get("collection_date_start"), sample.get("collection_date_end"), sample.get("archive"),
+                    sample.get("archive_contact"), sample.get("orig_archive"), sample.get("orig_archive_contact"), sample.get("parents"), sample.get("siblings"),
+                    sample.get("children"), json.dumps(sample)
+                )
+            )
+            conn.commit()
+            time.sleep(API_HIT_DELAY)
+        except Exception as e:
+            logging.warning(f"Failed fetching metadata for IGSN {igsn}: {e}")
 
-    try:
-        logging.info("Executing SQL statements...")
-        pg_hook.run(sql_statements, autocommit=True)
-        logging.info("SQL execution completed successfully!")
-    except Exception as e:
-        logging.error(f"SQL execution failed: {e}")
-        raise
+    cursor.close()
+    conn.close()
 
-    logging.info("Cleaning up csv...")
-    os.remove("/mnt/bucket/IMLGS.csv")
-
-def assign_IMLGS_hex():
-    # revise for higher resolution in production
-    sql_statements = """
-        ALTER TABLE imlgs ADD COLUMN IF NOT EXISTS location GEOMETRY(point, 4326);
-        UPDATE imlgs SET location = ST_SETSRID(ST_MakePoint(cast(longitude as float), cast(latitude as float)),4326);
-
-        ALTER TABLE imlgs ADD COLUMN IF NOT EXISTS hex_05 H3INDEX;
-        UPDATE imlgs SET hex_05 = H3_LAT_LNG_TO_CELL(location, 5);
-    """
-     # Initialize PostgresHook
-    pg_hook = PostgresHook(postgres_conn_id="oceexp-db")
-
-    try:
-        logging.info("Executing SQL statements to assign hexes...")
-        pg_hook.run(sql_statements, autocommit=True)
-        logging.info("SQL execution completed successfully!")
-    except Exception as e:
-        logging.error(f"SQL execution failed: {e}")
-        raise
-
-# Default arguments for DAG
+# DAG setup
 default_args = {
     'owner': 'airflow',
     'depends_on_past': False,
@@ -159,33 +205,26 @@ default_args = {
 }
 
 dag = DAG(
-    'dataset_ETL_IMLGS',
+    'dataset_ETL_SESAR',
     default_args=default_args,
-    description='Fetch samples from IMLGS, save to PostgreSQL, assign hexes',
+    description='Fetch SESAR samples from GeoSamples API using H3 polygons and save to PostgreSQL',
     schedule_interval=None,
-    start_date=datetime(2025, 3, 13),
+    start_date=datetime(2025, 7, 10),
     catchup=False,
 )
 
-fetch_clean_IMLGS_table = PythonOperator(
-    task_id='fetch_clean_IMLGS_table',
-    python_callable=fetch_IMLGS_table,
+fetch_sesar_igsns = PythonOperator(
+    task_id='fetch_sesar_igsns',
+    python_callable=fetch_igsns_for_hexes,
     provide_context=True,
     dag=dag
 )
 
-load_cleaned_IMLGS_table = PythonOperator(
-    task_id='load_cleaned_IMLGS_table',
-    python_callable=load_IMLGS_table,
+load_sesar_metadata = PythonOperator(
+    task_id='load_sesar_metadata',
+    python_callable=fetch_and_store_metadata,
     provide_context=True,
     dag=dag
 )
 
-assign_hexes_to_IMLGS= PythonOperator(
-    task_id='assign_hexes_to_IMLGS',
-    python_callable=assign_IMLGS_hex,
-    provide_context=True,
-    dag=dag
-)
-# Define task dependencies
-fetch_clean_IMLGS_table >> load_cleaned_IMLGS_table >> assign_hexes_to_IMLGS
+fetch_sesar_igsns >> load_sesar_metadata
