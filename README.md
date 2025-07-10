@@ -14,7 +14,7 @@
 
 ##  Overview
 
- The **NOAA Ocean Exploration Gap Analysis (EGA)** is a tool to establish a spatial coverage baseline for ocean exploration data holdings, support the monitoring of exploration and characterization progress on previously unexplored ocean areas, and aid in the identification of priority areas for future expeditions and data collection efforts. At its core, the EGA is a PostGIS database synthesizing deep sea scientific observations from publicly available data archives.
+ The **Exploration Gap Analysis (EGA)** is a tool to establish a spatial coverage baseline for ocean exploration data holdings, support the monitoring of exploration and characterization progress on previously unexplored ocean areas, and aid in the identification of priority areas for future expeditions and data collection efforts. At its core, the EGA is a PostGIS database synthesizing deep sea scientific observations from publicly available data archives.
 
  The current version is still in development.
 
@@ -96,12 +96,10 @@ GeoJSON results files can be visualized using a number of different tools. Here 
 
 ## Contributions
 
-This project is maintained by the **NOAA Ocean Exploration Data Lab** (Science & Technology Division) with help from the broader community.
-
 **Interested in contributing?**  
 Have data? Ideas? Feedback? Help us improve our understanding of the unknown deep ocean.
 
-📬 Contact NOAA Ocean Exploration or open an issue/PR to get involved.
+📬 Open an issue/PR to get involved.
 
 ---
 
